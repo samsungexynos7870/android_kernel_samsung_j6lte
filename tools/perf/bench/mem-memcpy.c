@@ -310,3 +310,163 @@ int bench_mem_memcpy(int argc, const char **argv,
 
 	return 0;
 }
+
+static void memcpy_alloc_mem(void **dst, void **src, size_t length)
+{
+	*dst = zalloc(length);
+	if (!*dst)
+		die("memory allocation failed - maybe length is too large?\n");
+
+	*src = zalloc(length);
+	if (!*src)
+		die("memory allocation failed - maybe length is too large?\n");
+	/* Make sure to always replace the zero pages even if MMAP_THRESH is crossed */
+	memset(*src, 0, length);
+}
+
+static u64 do_memcpy_cycle(const struct routine *r, size_t len, bool prefault)
+{
+	u64 cycle_start = 0ULL, cycle_end = 0ULL;
+	void *src = NULL, *dst = NULL;
+	memcpy_t fn = r->fn.memcpy;
+	int i;
+
+	memcpy_alloc_mem(&dst, &src, len);
+
+	if (prefault)
+		fn(dst, src, len);
+
+	cycle_start = get_cycle();
+	for (i = 0; i < iterations; ++i)
+		fn(dst, src, len);
+	cycle_end = get_cycle();
+
+	free(src);
+	free(dst);
+	return cycle_end - cycle_start;
+}
+
+static double do_memcpy_gettimeofday(const struct routine *r, size_t len,
+				     bool prefault)
+{
+	struct timeval tv_start, tv_end, tv_diff;
+	memcpy_t fn = r->fn.memcpy;
+	void *src = NULL, *dst = NULL;
+	int i;
+
+	memcpy_alloc_mem(&dst, &src, len);
+
+	if (prefault)
+		fn(dst, src, len);
+
+	BUG_ON(gettimeofday(&tv_start, NULL));
+	for (i = 0; i < iterations; ++i)
+		fn(dst, src, len);
+	BUG_ON(gettimeofday(&tv_end, NULL));
+
+	timersub(&tv_end, &tv_start, &tv_diff);
+
+	free(src);
+	free(dst);
+	return (double)(((double)len * iterations) / timeval2double(&tv_diff));
+}
+
+int bench_mem_memcpy(int argc, const char **argv,
+		     const char *prefix __maybe_unused)
+{
+	struct bench_mem_info info = {
+		.routines = memcpy_routines,
+		.do_cycle = do_memcpy_cycle,
+		.do_gettimeofday = do_memcpy_gettimeofday,
+		.usage = bench_mem_memcpy_usage,
+	};
+
+	return bench_mem_common(argc, argv, prefix, &info);
+}
+
+static void memset_alloc_mem(void **dst, size_t length)
+{
+	*dst = zalloc(length);
+	if (!*dst)
+		die("memory allocation failed - maybe length is too large?\n");
+}
+
+static u64 do_memset_cycle(const struct routine *r, size_t len, bool prefault)
+{
+	u64 cycle_start = 0ULL, cycle_end = 0ULL;
+	memset_t fn = r->fn.memset;
+	void *dst = NULL;
+	int i;
+
+	memset_alloc_mem(&dst, len);
+
+	if (prefault)
+		fn(dst, -1, len);
+
+	cycle_start = get_cycle();
+	for (i = 0; i < iterations; ++i)
+		fn(dst, i, len);
+	cycle_end = get_cycle();
+
+	free(dst);
+	return cycle_end - cycle_start;
+}
+
+static double do_memset_gettimeofday(const struct routine *r, size_t len,
+				     bool prefault)
+{
+	struct timeval tv_start, tv_end, tv_diff;
+	memset_t fn = r->fn.memset;
+	void *dst = NULL;
+	int i;
+
+	memset_alloc_mem(&dst, len);
+
+	if (prefault)
+		fn(dst, -1, len);
+
+	BUG_ON(gettimeofday(&tv_start, NULL));
+	for (i = 0; i < iterations; ++i)
+		fn(dst, i, len);
+	BUG_ON(gettimeofday(&tv_end, NULL));
+
+	timersub(&tv_end, &tv_start, &tv_diff);
+
+	free(dst);
+	return (double)(((double)len * iterations) / timeval2double(&tv_diff));
+}
+
+static const char * const bench_mem_memset_usage[] = {
+	"perf bench mem memset <options>",
+	NULL
+};
+
+static const struct routine memset_routines[] = {
+	{ .name ="default",
+	  .desc = "Default memset() provided by glibc",
+	  .fn.memset = memset },
+#ifdef HAVE_ARCH_X86_64_SUPPORT
+
+#define MEMSET_FN(_fn, _name, _desc) { .name = _name, .desc = _desc, .fn.memset = _fn },
+#include "mem-memset-x86-64-asm-def.h"
+#undef MEMSET_FN
+
+#endif
+
+	{ .name = NULL,
+	  .desc = NULL,
+	  .fn.memset = NULL   }
+};
+
+int bench_mem_memset(int argc, const char **argv,
+		     const char *prefix __maybe_unused)
+{
+	struct bench_mem_info info = {
+		.routines = memset_routines,
+		.do_cycle = do_memset_cycle,
+		.do_gettimeofday = do_memset_gettimeofday,
+		.usage = bench_mem_memset_usage,
+	};
+
+	return bench_mem_common(argc, argv, prefix, &info);
+}
