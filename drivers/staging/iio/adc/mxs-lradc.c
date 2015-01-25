@@ -1272,7 +1272,7 @@ static int mxs_lradc_buffer_preenable(struct iio_dev *iio)
 		mxs_lradc_reg_clear(lradc,
 			lradc->buffer_vchans << LRADC_CTRL1_LRADC_IRQ_EN_OFFSET,
 			LRADC_CTRL1);
-	mxs_lradc_reg_clear(lradc, 0xff, LRADC_CTRL0);
+	mxs_lradc_reg_clear(lradc, lradc->buffer_vchans, LRADC_CTRL0);
 
 	for_each_set_bit(chan, iio->active_scan_mask, LRADC_MAX_TOTAL_CHANS) {
 		ctrl4_set |= chan << LRADC_CTRL4_LRADCSELECT_OFFSET(ofs);
