@@ -394,8 +394,6 @@ static void arm_exynos_dma_mcode_free(struct device *dev, size_t size, void *cpu
 	iounmap(cpu_addr);
 }
 
-extern int swiotlb_late_init_with_default_size(size_t default_size);
-
 static int __init atomic_pool_init(void)
 {
 	pgprot_t prot = __pgprot(PROT_NORMAL_NC);
@@ -457,21 +455,13 @@ out:
 	return -ENOMEM;
 }
 
-static int __init swiotlb_late_init(void)
+static int __init arm64_dma_init(void)
 {
-	size_t swiotlb_size = min(SZ_64M, MAX_ORDER_NR_PAGES << PAGE_SHIFT);
+	int ret;
 
 	dma_ops = &noncoherent_swiotlb_dma_ops;
 
-	return swiotlb_late_init_with_default_size(swiotlb_size);
-}
-
-static int __init arm64_dma_init(void)
-{
-	int ret = 0;
-
-	ret |= swiotlb_late_init();
-	ret |= atomic_pool_init();
+	ret = atomic_pool_init();
 
 	return ret;
 }
