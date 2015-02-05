@@ -156,6 +156,7 @@ static struct cpufreq_driver exynos_driver = {
 
 static int exynos_cpufreq_probe(struct platform_device *pdev)
 {
+	struct device_node *cpu0;
 	int ret = -EINVAL;
 
 	exynos_info = kzalloc(sizeof(*exynos_info), GFP_KERNEL);
@@ -198,8 +199,25 @@ static int exynos_cpufreq_probe(struct platform_device *pdev)
 	/* Done here as we want to capture boot frequency */
 	locking_frequency = clk_get_rate(exynos_info->cpu_clk) / 1000;
 
-	if (!cpufreq_register_driver(&exynos_driver))
+	ret = cpufreq_register_driver(&exynos_driver);
+	if (ret)
+		goto err_cpufreq_reg;
+
+	cpu0 = of_get_cpu_node(0, NULL);
+	if (!cpu0) {
+		pr_err("failed to find cpu0 node\n");
 		return 0;
+	}
+
+	if (of_find_property(cpu0, "#cooling-cells", NULL)) {
+		cdev = of_cpufreq_cooling_register(cpu0,
+						   cpu_present_mask);
+		if (IS_ERR(cdev))
+			pr_err("running cpufreq without cooling device: %ld\n",
+			       PTR_ERR(cdev));
+	}
+
+	return 0;
 
 	dev_err(&pdev->dev, "failed to register cpufreq driver\n");
 	regulator_put(arm_regulator);
