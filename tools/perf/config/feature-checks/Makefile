@@ -44,6 +44,9 @@ test-all.bin:
 test-hello.bin:
 	$(BUILD)
 
+test-pthread-attr-setaffinity-np.bin:
+	$(BUILD) -D_GNU_SOURCE -Werror -lpthread
+
 test-stackprotector-all.bin:
 	$(BUILD) -Werror -fstack-protector-all
 
