@@ -590,7 +590,8 @@ nft_match_select_ops(const struct nft_ctx *ctx,
 	list_for_each_entry(nft_match, &nft_match_list, head) {
 		struct xt_match *match = nft_match->ops.data;
 
-		if (nft_match_cmp(match, mt_name, rev, family)) {
+		if (strcmp(match->name, mt_name) == 0 &&
+		    match->revision == rev && match->family == family) {
 			if (!try_module_get(match->me))
 				return ERR_PTR(-ENOENT);
 
@@ -670,7 +671,8 @@ nft_target_select_ops(const struct nft_ctx *ctx,
 	list_for_each_entry(nft_target, &nft_target_list, head) {
 		struct xt_target *target = nft_target->ops.data;
 
-		if (nft_target_cmp(target, tg_name, rev, family)) {
+		if (strcmp(target->name, tg_name) == 0 &&
+		    target->revision == rev && target->family == family) {
 			if (!try_module_get(target->me))
 				return ERR_PTR(-ENOENT);
 
