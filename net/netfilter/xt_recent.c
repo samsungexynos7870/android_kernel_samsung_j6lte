@@ -362,6 +362,13 @@ static int recent_mt_check(const struct xt_mtchk_param *par,
 	mutex_lock(&recent_mutex);
 	t = recent_table_lookup(recent_net, info->name);
 	if (t != NULL) {
+		if (nstamp_mask > t->nstamps_max_mask) {
+			spin_lock_bh(&recent_lock);
+			recent_table_flush(t);
+			t->nstamps_max_mask = nstamp_mask;
+			spin_unlock_bh(&recent_lock);
+		}
+
 		t->refcnt++;
 		ret = 0;
 		goto out;
