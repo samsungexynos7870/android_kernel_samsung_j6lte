@@ -790,31 +790,13 @@ static int tegra_output_hdmi_enable(struct tegra_output *output)
 	h_back_porch = mode->htotal - mode->hsync_end;
 	h_front_porch = mode->hsync_start - mode->hdisplay;
 
-	err = regulator_enable(hdmi->pll);
-	if (err < 0) {
-		dev_err(hdmi->dev, "failed to enable PLL regulator: %d\n", err);
-		return err;
-	}
-
-	err = regulator_enable(hdmi->vdd);
-	if (err < 0) {
-		dev_err(hdmi->dev, "failed to enable VDD regulator: %d\n", err);
-		return err;
-	}
-
 	err = clk_set_rate(hdmi->clk, pclk);
-	if (err < 0)
-		return err;
-
-	err = clk_prepare_enable(hdmi->clk);
 	if (err < 0) {
-		dev_err(hdmi->dev, "failed to enable clock: %d\n", err);
-		return err;
+		dev_err(hdmi->dev, "failed to set HDMI clock frequency: %d\n",
+			err);
 	}
 
-	reset_control_assert(hdmi->rst);
-	usleep_range(1000, 2000);
-	reset_control_deassert(hdmi->rst);
+	DRM_DEBUG_KMS("HDMI clock rate: %lu Hz\n", clk_get_rate(hdmi->clk));
 
 	/* power up sequence */
 	value = tegra_hdmi_readl(hdmi, HDMI_NV_PDISP_SOR_PLL0);
