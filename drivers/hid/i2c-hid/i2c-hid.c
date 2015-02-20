@@ -373,8 +373,7 @@ static int i2c_hid_hwreset(struct i2c_client *client)
 
 static void i2c_hid_get_input(struct i2c_hid *ihid)
 {
-	int ret;
-	u32 ret_size;
+	int ret, ret_size;
 	int size = le16_to_cpu(ihid->hdesc.wMaxInputLength);
 
 	if (size > ihid->bufsize)
