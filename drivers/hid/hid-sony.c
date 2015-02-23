@@ -287,32 +287,13 @@ union sixaxis_output_report_01 {
 	struct sixaxis_output_report data;
 	u8 buf[36];
 };
-#define DS4_FEATURE_REPORT_0x02_SIZE 37
-#define DS4_FEATURE_REPORT_0x05_SIZE 41
-#define DS4_FEATURE_REPORT_0x81_SIZE 7
-#define DS4_INPUT_REPORT_0x11_SIZE 78
-#define DS4_OUTPUT_REPORT_0x05_SIZE 32
-#define DS4_OUTPUT_REPORT_0x11_SIZE 78
-#define SIXAXIS_REPORT_0xF2_SIZE 17
-#define SIXAXIS_REPORT_0xF5_SIZE 8
-/* Offsets relative to USB input report (0x1). Bluetooth (0x11) requires an
- * additional +2.
- */
-#define DS4_INPUT_REPORT_AXIS_OFFSET      1
-#define DS4_INPUT_REPORT_BUTTON_OFFSET    5
-#define DS4_INPUT_REPORT_TIMESTAMP_OFFSET 10
-#define DS4_INPUT_REPORT_GYRO_X_OFFSET   13
-#define DS4_INPUT_REPORT_BATTERY_OFFSET  30
-#define DS4_INPUT_REPORT_TOUCHPAD_OFFSET 33
-#define SENSOR_SUFFIX " Motion Sensors"
-#define DS4_TOUCHPAD_SUFFIX " Touchpad"
-/* Default to 4ms poll interval, which is same as USB (not adjustable). */
-#define DS4_BT_DEFAULT_POLL_INTERVAL_MS 4
-#define DS4_BT_MAX_POLL_INTERVAL_MS 62
-#define DS4_GYRO_RES_PER_DEG_S 1024
-#define DS4_ACC_RES_PER_G      8192
-#define SIXAXIS_INPUT_REPORT_ACC_X_OFFSET 41
-#define SIXAXIS_ACC_RES_PER_G 113
+
+#define DS4_REPORT_0x02_SIZE 37
+#define DS4_REPORT_0x05_SIZE 32
+#define DS4_REPORT_0x11_SIZE 78
+#define DS4_REPORT_0x81_SIZE 7
+#define SIXAXIS_REPORT_0xF2_SIZE 18
+
 static DEFINE_SPINLOCK(sony_dev_list_lock);
 static LIST_HEAD(sony_device_list);
 static DEFINE_IDA(sony_device_id_allocator);
