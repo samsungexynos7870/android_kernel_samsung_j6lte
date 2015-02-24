@@ -571,12 +571,33 @@ static void exynos_tmu_control(struct platform_device *pdev, bool on)
 		ptat_cont = (ptat_cont >> reg->buf_vref_otp_shift) & reg->buf_vref_otp_mask;
 		ptat_cont = (ptat_cont << EXYNOS_TMU_PTAT_CON_SHIFT);
 
-		buf_cont = readl(data->base + reg->buf_slope_otp_reg);
-		buf_cont = (buf_cont >> reg->buf_slope_otp_shift) & reg->buf_slope_otp_mask;
-		buf_cont = (buf_cont << EXYNOS_TMU_BUF_CONT_SHIFT);
+	if (on) {
+		con |= (1 << EXYNOS_TMU_CORE_EN_SHIFT);
+		con |= (1 << EXYNOS7_PD_DET_EN_SHIFT);
+		interrupt_en =
+			(of_thermal_is_trip_valid(tz, 7)
+			<< EXYNOS7_TMU_INTEN_RISE7_SHIFT) |
+			(of_thermal_is_trip_valid(tz, 6)
+			<< EXYNOS7_TMU_INTEN_RISE6_SHIFT) |
+			(of_thermal_is_trip_valid(tz, 5)
+			<< EXYNOS7_TMU_INTEN_RISE5_SHIFT) |
+			(of_thermal_is_trip_valid(tz, 4)
+			<< EXYNOS7_TMU_INTEN_RISE4_SHIFT) |
+			(of_thermal_is_trip_valid(tz, 3)
+			<< EXYNOS7_TMU_INTEN_RISE3_SHIFT) |
+			(of_thermal_is_trip_valid(tz, 2)
+			<< EXYNOS7_TMU_INTEN_RISE2_SHIFT) |
+			(of_thermal_is_trip_valid(tz, 1)
+			<< EXYNOS7_TMU_INTEN_RISE1_SHIFT) |
+			(of_thermal_is_trip_valid(tz, 0)
+			<< EXYNOS7_TMU_INTEN_RISE0_SHIFT);
 
-		ctrl1 = readl(data->base + reg->tmu_ctrl1);
-		writel(ctrl1 | ptat_cont | buf_cont, data->base + reg->tmu_ctrl1);
+		interrupt_en |=
+			interrupt_en << EXYNOS_TMU_INTEN_FALL0_SHIFT;
+	} else {
+		con &= ~(1 << EXYNOS_TMU_CORE_EN_SHIFT);
+		con &= ~(1 << EXYNOS7_PD_DET_EN_SHIFT);
+		interrupt_en = 0; /* Disable all interrupts */
 	}
 
 	writel(interrupt_en, data->base + reg->tmu_inten);
