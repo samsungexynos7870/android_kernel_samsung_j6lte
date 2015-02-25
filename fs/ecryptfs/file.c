@@ -337,7 +337,6 @@ ecryptfs_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	struct file *lower_file = ecryptfs_file_to_lower(file);
 	long rc = -ENOTTY;
 
-	printk("%s CONFIG_SDP not enabled \n", __func__);
 	if (!lower_file->f_op->unlocked_ioctl)
 		return rc;
 
@@ -363,7 +362,6 @@ ecryptfs_compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	struct file *lower_file = ecryptfs_file_to_lower(file);
 	long rc = -ENOIOCTLCMD;
 
-	printk("%s CONFIG_SDP not enabled \n", __func__);
 	if (!lower_file->f_op->compat_ioctl)
 		return rc;
 
