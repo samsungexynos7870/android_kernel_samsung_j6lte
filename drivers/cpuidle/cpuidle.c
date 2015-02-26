@@ -92,7 +92,11 @@ static int cpuidle_find_deepest_state(struct cpuidle_driver *drv,
 /**
  * cpuidle_enter_freeze - Enter an idle state suitable for suspend-to-idle.
  *
- * Find the deepest state available and enter it.
+ * If there are states with the ->enter_freeze callback, find the deepest of
+ * them and enter it with frozen tick.  Otherwise, find the deepest state
+ * available and enter it normally.
+ *
+ * Returns with enabled interrupts.
  */
 void cpuidle_enter_freeze(void)
 {
@@ -100,14 +104,27 @@ void cpuidle_enter_freeze(void)
 	struct cpuidle_driver *drv = cpuidle_get_cpu_driver(dev);
 	int index;
 
-	index = cpuidle_find_deepest_state(drv, dev);
+	/*
+	 * Find the deepest state with ->enter_freeze present, which guarantees
+	 * that interrupts won't be enabled when it exits and allows the tick to
+	 * be frozen safely.
+	 */
+	index = cpuidle_find_deepest_state(drv, dev, true);
+	if (index >= 0) {
+		enter_freeze_proper(drv, dev, index);
+		local_irq_enable();
+		return;
+	}
+
+	/*
+	 * It is not safe to freeze the tick, find the deepest state available
+	 * at all and try to enter it normally.
+	 */
+	index = cpuidle_find_deepest_state(drv, dev, false);
 	if (index >= 0)
 		cpuidle_enter(drv, dev, index);
 	else
 		arch_cpu_idle();
-
-	/* Interrupts are enabled again here. */
-	local_irq_disable();
 }
 
 /**
