@@ -402,11 +402,11 @@ KERNELRELEASE = $(shell cat include/config/kernel.release 2> /dev/null)
 
 ifdef CONFIG_CUSTOM_VERSION
 # Custom kernel version
-CVERSION = 5
-CPATCHLEVEL = 13
-CSUBLEVEL = 12
-CEXTRAVERSION =
-CNAME = Opossums on Parade
+CVERSION = 4
+CPATCHLEVEL = 0
+CSUBLEVEL = 0
+CEXTRAVERSION = -rc2
+CNAME = Hurr durr I'ma sheep
 endif
 
 ifeq ($(CONFIG_CUSTOM_VERSION),y)
