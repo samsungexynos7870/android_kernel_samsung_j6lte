@@ -1642,9 +1642,9 @@ generic_add_lease(struct file *filp, long arg, struct file_lock **flp, void **pr
 			goto out;
 	}
 
-	if (my_before != NULL) {
-		lease = *my_before;
-		error = lease->fl_lmops->lm_change(my_before, arg, &dispose);
+	if (my_fl != NULL) {
+		lease = my_fl;
+		error = lease->fl_lmops->lm_change(lease, arg, &dispose);
 		if (error)
 			goto out;
 		goto out_setup;
