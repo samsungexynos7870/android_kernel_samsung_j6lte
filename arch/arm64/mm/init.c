@@ -142,6 +142,8 @@ static void __init arm64_memory_present(void)
 }
 #endif
 
+static phys_addr_t memory_limit = (phys_addr_t)ULLONG_MAX;
+
 void __init arm64_memblock_init(void)
 {
 	memblock_enforce_memory_limit(memory_limit);
