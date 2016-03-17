@@ -296,7 +296,6 @@ struct mapping_area {
 #endif
 	char *vm_addr; /* address of kmap_atomic()'ed pages */
 	enum zs_mapmode vm_mm; /* mapping mode */
-	bool huge;
 };
 
 /* atomic counter indicating which class/fg to reclaim from */
@@ -1222,16 +1221,9 @@ static void __zs_unmap_object(struct mapping_area *area,
 		goto out;
 
 	buf = area->vm_buf;
-	if (!area->huge) {
-		buf = buf + ZS_HANDLE_SIZE;
-		size -= ZS_HANDLE_SIZE;
-		off += ZS_HANDLE_SIZE;
-	}
-#ifdef CONFIG_ZSMALLOC_OBJ_SEQ
-	buf += ZS_OBJ_SEQ_SIZE;
-	size -= ZS_OBJ_SEQ_SIZE;
-	off += ZS_OBJ_SEQ_SIZE;
-#endif
+	buf = buf + ZS_HANDLE_SIZE;
+	size -= ZS_HANDLE_SIZE;
+	off += ZS_HANDLE_SIZE;
 
 	sizes[0] = PAGE_SIZE - off;
 	sizes[1] = size - sizes[0];
