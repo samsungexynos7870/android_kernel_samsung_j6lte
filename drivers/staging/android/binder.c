@@ -3163,7 +3163,6 @@ static void binder_transaction(struct binder_proc *proc,
 
 	if (target_node && target_node->txn_security_ctx) {
 		u32 secid;
-		size_t added_size;
 
 		security_task_getsecid(proc->tsk, &secid);
 		ret = security_secid_to_secctx(secid, &secctx, &secctx_sz);
@@ -3173,17 +3172,8 @@ static void binder_transaction(struct binder_proc *proc,
 			return_error_line = __LINE__;
 			goto err_get_secctx_failed;
 		}
-		added_size = ALIGN(secctx_sz, sizeof(u64));
-		extra_buffers_size += added_size;
-		if (extra_buffers_size < added_size) {
-			/* integer overflow of extra_buffers_size */
-			return_error = BR_FAILED_REPLY;
-			return_error_param = EINVAL;
-			return_error_line = __LINE__;
-			goto err_bad_extra_size;
-		}
+		extra_buffers_size += ALIGN(secctx_sz, sizeof(u64));
 	}
-
 
 	trace_binder_transaction(reply, t, target_node);
 
@@ -3207,6 +3197,19 @@ static void binder_transaction(struct binder_proc *proc,
 		}
 		//SAnP]
 		goto err_binder_alloc_buf_failed;
+	}
+	if (secctx) {
+		size_t buf_offset = ALIGN(tr->data_size, sizeof(void *)) +
+				    ALIGN(tr->offsets_size, sizeof(void *)) +
+				    ALIGN(extra_buffers_size, sizeof(void *)) -
+				    ALIGN(secctx_sz, sizeof(u64));
+		char *kptr = t->buffer->data + buf_offset;
+
+		t->security_ctx = (uintptr_t)kptr +
+		    binder_alloc_get_user_buffer_offset(&target_proc->alloc);
+		memcpy(kptr, secctx, secctx_sz);
+		security_release_secctx(secctx, secctx_sz);
+		secctx = NULL;
 	}
 	t->buffer->debug_id = t->debug_id;
 	t->buffer->transaction = t;
@@ -3475,7 +3478,6 @@ err_copy_data_failed:
 	t->buffer->transaction = NULL;
 	binder_alloc_free_buf(&target_proc->alloc, t->buffer);
 err_binder_alloc_buf_failed:
-err_bad_extra_size:
 	if (secctx)
 		security_release_secctx(secctx, secctx_sz);
 err_get_secctx_failed:
@@ -4128,7 +4130,6 @@ retry:
 		uint32_t cmd;
 		struct binder_transaction_data_secctx tr;
 		struct binder_transaction_data *trd = &tr.transaction_data;
-
 		struct binder_work *w = NULL;
 		struct list_head *list = NULL;
 		struct binder_transaction *t = NULL;
@@ -4330,7 +4331,6 @@ retry:
 
 			trd->target.ptr = target_node->ptr;
 			trd->cookie =  target_node->cookie;
-
 			node_prio.sched_policy = target_node->sched_policy;
 			node_prio.prio = target_node->min_priority;
 			binder_transaction_priority(current, t, node_prio,
@@ -4390,7 +4390,7 @@ retry:
 			return -EFAULT;
 		}
 		ptr += trsize;
-		
+
 		trace_binder_transaction_received(t);
 		binder_stat_br(proc, thread, cmd);
 		binder_debug(BINDER_DEBUG_TRANSACTION,
@@ -4757,6 +4757,29 @@ out:
 	return ret;
 }
 
+static int binder_ioctl_set_inherit_fifo_prio(struct file *filp)
+{
+	int ret = 0;
+	struct binder_proc *proc = filp->private_data;
+	struct binder_context *context = proc->context;
+	kuid_t curr_euid = current_euid();
+	mutex_lock(&context->context_mgr_node_lock);
+	if (uid_valid(context->binder_context_mgr_uid)) {
+		if (!uid_eq(context->binder_context_mgr_uid, curr_euid)) {
+			pr_err("BINDER_SET_INHERIT_FIFO_PRIO bad uid %d != %d\n",
+			       from_kuid(&init_user_ns, curr_euid),
+			       from_kuid(&init_user_ns,
+					 context->binder_context_mgr_uid));
+			ret = -EPERM;
+			goto out;
+		}
+	}
+	context->inherit_fifo_prio = true;
+ out:
+	mutex_unlock(&context->context_mgr_node_lock);
+	return ret;
+}
+
 static int binder_ioctl_set_ctx_mgr(struct file *filp,
 				    struct flat_binder_object *fbo)
 {
@@ -4918,6 +4941,12 @@ static long binder_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			goto err;
 		}
 		ret = binder_ioctl_set_ctx_mgr(filp, &fbo);
+		if (ret)
+			goto err;
+		break;
+	}
+	case BINDER_SET_CONTEXT_MGR:
+		ret = binder_ioctl_set_ctx_mgr(filp, NULL);
 		if (ret)
 			goto err;
 		break;
