@@ -308,6 +308,27 @@ int kallsyms_lookup_size_offset(unsigned long addr, unsigned long *symbolsize,
 	return !!module_address_lookup(addr, symbolsize, offset, NULL, namebuf);
 }
 
+#ifdef CONFIG_CFI_CLANG
+/*
+ * LLVM appends .cfi to function names when CONFIG_CFI_CLANG is enabled,
+ * which causes confusion and potentially breaks user space tools, so we
+ * will strip the postfix from expanded symbol names.
+ */
+static inline void cleanup_symbol_name(char *s)
+{
+	char *res;
+
+#ifdef CONFIG_THINLTO
+	/* Filter out hashes from static functions */
+	res = strrchr(s, '$');
+	if (res)
+		*res = '\0';
+#endif
+	res = strrchr(s, '.');
+	if (res && !strcmp(res, ".cfi"))
+		*res = '\0';
+}
+
 /*
  * Lookup an address
  * - modname is set to NULL if it's in the kernel.
