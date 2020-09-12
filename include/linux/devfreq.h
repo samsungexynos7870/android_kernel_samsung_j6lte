@@ -167,6 +167,9 @@ struct devfreq {
 
 	unsigned long min_freq;
 	unsigned long max_freq;
+	bool is_boost_device;
+	bool max_boost;
+	unsigned long str_freq;
 	bool stop_polling;
 
 	/* information for device frequency transition */
@@ -268,6 +271,64 @@ struct devfreq_simple_exynos_data {
 };
 #endif
 
+#if IS_ENABLED(CONFIG_DEVFREQ_GOV_SIMPLE_INTERACTIVE)
+#define DEFAULT_DELAY_TIME		10 /* msec */
+#define DEFAULT_NDELAY_TIME		1
+#define DELAY_TIME_RANGE		10
+#define BOUND_CPU_NUM			0
+
+#ifdef CONFIG_EXYNOS_WD_DVFS
+#define SIMPLE_LOAD_MAX				10
+struct devfreq_simple_load {
+	unsigned long long delta;
+	unsigned int load;
+};
+#endif
+struct devfreq_simple_interactive_data {
+#ifdef CONFIG_EXYNOS_WD_DVFS
+	struct devfreq_simple_load buffer[SIMPLE_LOAD_MAX];
+	struct devfreq_simple_load *front;
+	struct devfreq_simple_load *rear;
+	unsigned long long busy;
+	unsigned long long total;
+	unsigned int min_load;
+	unsigned int max_load;
+	unsigned long long max_spent;
+	/* governor parameter */
+#define INTERACTIVE_MIN_SAMPLE_TIME	15
+	unsigned int min_sample_time;
+#define INTERACTIVE_HOLD_SAMPLE_TIME	100
+	unsigned int hold_sample_time;
+#define INTERACTIVE_TARGET_LOAD		75
+#define INTERACTIVE_NTARGET_LOAD	1
+	unsigned int *target_load;
+	unsigned int ntarget_load;
+#define INTERACTIVE_GO_HISPEED_LOAD	99
+	unsigned int go_hispeed_load;
+#define INTERACTIVE_HISPEED_FREQ	1000000
+	unsigned int hispeed_freq;
+#define INTERACTIVE_TOLERANCE		1
+	unsigned int tolerance;
+	/* governor end */
+#endif
+	bool use_delay_time;
+	int *delay_time;
+	int ndelay_time;
+	unsigned long prev_freq;
+	u64 changed_time;
+	struct timer_list freq_timer;
+	struct timer_list freq_slack_timer;
+	struct task_struct *change_freq_task;
+	int pm_qos_class;
+	int pm_qos_class_max;
+	struct devfreq_notifier_block nb;
+	struct devfreq_notifier_block nb_max;
+};
+#endif
+
+/* Caution: devfreq->lock must be locked before calling update_devfreq */
+extern int update_devfreq(struct devfreq *devfreq);
+
 #else /* !CONFIG_PM_DEVFREQ */
 static inline struct devfreq *devfreq_add_device(struct device *dev,
 					  struct devfreq_dev_profile *profile,
@@ -333,6 +394,17 @@ static inline void devm_devfreq_unregister_opp_notifier(struct device *dev,
 							struct devfreq *devfreq)
 {
 }
+
+static inline int devfreq_update_stats(struct devfreq *df)
+{
+	return -EINVAL;
+}
+
+static inline int update_devfreq(struct devfreq *devfreq)
+{
+	return -EINVAL;
+}
+
 #endif /* CONFIG_PM_DEVFREQ */
 
 #endif /* __LINUX_DEVFREQ_H__ */
