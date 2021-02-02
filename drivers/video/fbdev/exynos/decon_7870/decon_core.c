@@ -38,6 +38,10 @@
 #include <media/v4l2-subdev.h>
 #include <soc/samsung/exynos-powermode.h>
 
+#ifdef CONFIG_POWERSUSPEND
+#include <linux/powersuspend.h>
+#endif
+
 #include "decon.h"
 #include "dsim.h"
 #include "decon_helper.h"
@@ -1222,6 +1226,9 @@ static int decon_blank(int blank_mode, struct fb_info *info)
 	switch (blank_mode) {
 	case FB_BLANK_POWERDOWN:
 	case FB_BLANK_NORMAL:
+#ifdef CONFIG_POWERSUSPEND
+		set_power_suspend_state_panel_hook(POWER_SUSPEND_ACTIVE);
+#endif
 		DISP_SS_EVENT_LOG(DISP_EVT_BLANK, &decon->sd, ktime_set(0, 0));
 		ret = decon_disable(decon);
 		if (ret) {
@@ -1231,6 +1238,9 @@ static int decon_blank(int blank_mode, struct fb_info *info)
 		atomic_set(&decon->ffu_flag, 2);
 		break;
 	case FB_BLANK_UNBLANK:
+#ifdef CONFIG_POWERSUSPEND
+		set_power_suspend_state_panel_hook(POWER_SUSPEND_INACTIVE);
+#endif
 		DISP_SS_EVENT_LOG(DISP_EVT_UNBLANK, &decon->sd, ktime_set(0, 0));
 		ret = decon_enable(decon);
 		if (ret) {
