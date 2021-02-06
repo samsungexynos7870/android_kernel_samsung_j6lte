@@ -102,5 +102,9 @@ config KLAT
 	bool "kernel CLAT"
 	default n
 
+config OREO_OR_OLDER
+	bool "Android 8.1 and older Bootloader/Modem Support"
+	default n
+
 endmenu
 endif
