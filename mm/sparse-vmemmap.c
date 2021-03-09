@@ -133,9 +133,6 @@ pud_t * __meminit vmemmap_pud_populate(pgd_t *pgd, unsigned long addr, int node)
 	pud_t *pud = pud_offset(pgd, addr);
 	if (pud_none(*pud)) {
 #ifdef CONFIG_TIMA_RKP
-#ifdef CONFIG_KNOX_KAP
-		if (boot_mode_security)  rkp_do = 1;
-#endif
 		if( rkp_do ){
 			p =  rkp_ro_alloc();
 		}else{

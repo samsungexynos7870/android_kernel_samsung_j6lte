@@ -17,9 +17,6 @@
 #ifdef CONFIG_TIMA_RKP
 #include <linux/rkp_entry.h>
 #endif
-#ifdef CONFIG_KNOX_KAP
-extern int boot_mode_security;
-#endif
 
 extern int tima_debug_modify_kernel(const char *val, struct kernel_param *kp);
 
@@ -144,9 +141,6 @@ static int tima_setup_rkp_mem(void){
 #endif
 static int __init tima_log_setup(char *str)
 {
-#ifdef CONFIG_KNOX_KAP
-	if (!boot_mode_security) goto out;
-#endif
 	if( !tima_setup_rkp_mem())  goto out; 
 
 	return 1;
@@ -222,9 +216,6 @@ static int __init tima_debug_log_read_init(void)
 	pr_info("%s: Registering /proc/tima_debug_log Interface\n", __func__);
 
 #ifdef CONFIG_TIMA_RKP
-#ifdef CONFIG_KNOX_KAP
-	if (boot_mode_security){
-#endif
 		if (proc_create("tima_debug_rkp_log", 0644,NULL, &tima_proc_fops) == NULL) {
 			printk(KERN_ERR"tima_debug_rkp_log_read_init: Error creating proc entry\n");
 			goto remove_secure_entry;
@@ -235,9 +226,6 @@ static int __init tima_debug_log_read_init(void)
 		}
 		tima_debug_rkp_log_addr  = (unsigned long *)phys_to_virt(DEBUG_RKP_LOG_START);
 		tima_secure_rkp_log_addr = (unsigned long *)phys_to_virt(SECURE_RKP_LOG_START);
-#ifdef CONFIG_KNOX_KAP
-	}
-#endif
 #endif
 	tima_debug_log_addr = (unsigned long *)phys_to_virt(TIMA_DEBUG_LOGGING_START);
 	tima_secure_log_addr = (unsigned long *)phys_to_virt(TIMA_SECURE_LOGGING_START);
@@ -266,14 +254,8 @@ static void __exit tima_debug_log_read_exit(void)
 	remove_proc_entry("tima_debug_log", NULL);
 	remove_proc_entry("tima_secure_log", NULL);
 #ifdef CONFIG_TIMA_RKP
-#ifdef CONFIG_KNOX_KAP
-	if (boot_mode_security){
-#endif
 		remove_proc_entry("tima_debug_rkp_log", NULL);
 		remove_proc_entry("tima_secure_rkp_log", NULL);
-#ifdef CONFIG_KNOX_KAP
-	}
-#endif
 #endif
 	pr_info("Deregistering /proc/tima_debug_log Interface\n");
 }

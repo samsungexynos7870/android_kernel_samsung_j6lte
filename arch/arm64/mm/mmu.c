@@ -45,9 +45,6 @@
 
 u64 idmap_t0sz = TCR_T0SZ(VA_BITS);
 static int iotable_on;
-#ifdef CONFIG_KNOX_KAP
-extern int boot_mode_security;
-#endif
 /*
  * Empty_zero_page is a special page that is used for zero-initialized data
  * and COW.
@@ -229,11 +226,7 @@ static void alloc_init_pmd(struct mm_struct *mm, pud_t *pud,
 	 */
 	if (pud_none(*pud) || pud_bad(*pud)) {
 #ifdef CONFIG_TIMA_RKP
-#ifdef CONFIG_KNOX_KAP
-		if (boot_mode_security)  rkp_do = 1;
-#else
 		rkp_do = 1;
-#endif
 		if( rkp_do ){
 			pmd = rkp_ro_alloc();
 		}else{
@@ -497,11 +490,7 @@ static void __init map_mem(void)
 #endif
 
 #ifdef CONFIG_TIMA_RKP
-#ifdef CONFIG_KNOX_KAP
-	if (boot_mode_security)  rkp_do = 1;
-#else
 	rkp_do = 1;
-#endif
 	if( rkp_do ){
 		__map_memblock(start, mid);
 		memset((void*)RKP_RBUF_VA, 0, TIMA_ROBUF_SIZE);
@@ -515,13 +504,7 @@ static void __init map_mem(void)
 	}
 
 #ifdef CONFIG_TIMA_RKP
-#ifdef CONFIG_KNOX_KAP
-	if (boot_mode_security) {
-#endif
 		vmm_extra_mem = early_alloc(0x600000);
-#ifdef CONFIG_KNOX_KAP
-	}
-#endif
 #endif
 	/* Limit no longer required. */
 	memblock_set_current_limit(MEMBLOCK_ALLOC_ANYWHERE);
@@ -623,9 +606,6 @@ void __init paging_init(void)
 
 	map_mem();
 #ifdef CONFIG_TIMA_RKP
-#ifdef CONFIG_KNOX_KAP
-	if (boot_mode_security)
-#endif
 		rkp_do = 1;
 	if (rkp_do)
 		empty_zero_page = rkp_ro_alloc();
