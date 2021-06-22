@@ -10,3 +10,6 @@ make exynos7870-j6lte_cis_ser_02.dtb
 ./tools/dtbtool arch/arm64/boot/dts/ -o arch/arm64/boot/dtb
 make -j10
 rm -rf arch/arm64/boot/dts/*.dtb
+rm /mnt/c/Users/fduca/AnyKernel3/Image /mnt/c/Users/fduca/AnyKernel3/dtb /mnt/c/Users/fduca/AnyKernel3/AnyKernel3.zip
+cp ./arch/arm64/boot/Image /mnt/c/Users/fduca/AnyKernel3/
+cp ./arch/arm64/boot/dtb /mnt/c/Users/fduca/AnyKernel3/
