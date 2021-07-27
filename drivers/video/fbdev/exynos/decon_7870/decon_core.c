@@ -42,6 +42,10 @@
 #include <linux/powersuspend.h>
 #endif
 
+#ifdef CONFIG_STATE_NOTIFIER
+#include <linux/state_notifier.h>
+#endif
+
 #include "decon.h"
 #include "dsim.h"
 #include "decon_helper.h"
@@ -1236,6 +1240,9 @@ static int decon_blank(int blank_mode, struct fb_info *info)
 			goto blank_exit;
 		}
 		atomic_set(&decon->ffu_flag, 2);
+		#ifdef CONFIG_STATE_NOTIFIER
+		state_suspend();
+		#endif
 		break;
 	case FB_BLANK_UNBLANK:
 #ifdef CONFIG_POWERSUSPEND
@@ -1248,6 +1255,9 @@ static int decon_blank(int blank_mode, struct fb_info *info)
 			goto blank_exit;
 		}
 		atomic_set(&decon->ffu_flag, 2);
+		#ifdef CONFIG_STATE_NOTIFIER
+                state_suspend();
+                #endif
 		break;
 	case FB_BLANK_VSYNC_SUSPEND:
 	case FB_BLANK_HSYNC_SUSPEND:
