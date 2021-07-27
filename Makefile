@@ -248,8 +248,7 @@ SUBARCH := $(shell uname -m | sed -e s/i.86/x86/ -e s/x86_64/x86/ \
 # Default value for CROSS_COMPILE is not to prefix executables
 # Note: Some architectures assign CROSS_COMPILE in their arch/*/Makefile
 export KBUILD_BUILDHOST := $(SUBARCH)
-ARCH        ?=arm64
-CROSS_COMPILE    ?=/home/fra/gcc/bin/aarch64-linux-gnu-
+ARCH		?=arm64
 
 # Architecture as present in compile.h
 UTS_MACHINE 	:= $(ARCH)
