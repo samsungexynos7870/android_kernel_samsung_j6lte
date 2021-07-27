@@ -361,7 +361,7 @@ int ect_strcmp(char *src1, char *src2);
 #else
 
 static inline void ect_init(phys_addr_t address, phys_addr_t size) {}
-static inline int ect_parse_binary_header(void) { return 0; }
+static inline int __init ect_parse_binary_header(void) { return 0; }
 static inline void* ect_get_block(char *block_name) { return NULL; }
 static inline struct ect_dvfs_domain *ect_dvfs_get_domain(void *block, char *domain_name) { return NULL; }
 static inline struct ect_pll *ect_pll_get_pll(void *block, char *pll_name) { return NULL; }
