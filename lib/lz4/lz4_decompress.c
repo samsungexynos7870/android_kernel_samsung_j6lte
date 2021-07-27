@@ -88,7 +88,7 @@ static int lz4_uncompress(const char *source, char *dest, int osize)
 			if (cpy != oend)
 				goto _output_error;
 
-			memcpy(op, ip, length);
+				LZ4_memcpy(op, ip, length);
 			ip += length;
 			break; /* EOF */
 		}
@@ -214,7 +214,7 @@ static int lz4_uncompress_unknownoutputsize(const char *source, char *dest,
 						    * to consume all input
 						    * at this stage
 						    */
-			memcpy(op, ip, length);
+			LZ4_memcpy(op, ip, length);
 			op += length;
 			break;/* Necessarily EOF, due to parsing restrictions */
 		}

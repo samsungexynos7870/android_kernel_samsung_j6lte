@@ -228,7 +228,7 @@ _last_literals:
 		*op++ = (u8)lastrun;
 	} else
 		*op++ = (lastrun << ML_BITS);
-	memcpy(op, anchor, iend - anchor);
+	LZ4_memcpy(op, anchor, iend - anchor);
 	op += iend - anchor;
 
 	/* End */
@@ -409,7 +409,7 @@ _last_literals:
 		*op++ = (u8)lastrun;
 	} else
 		*op++ = (lastrun << ML_BITS);
-	memcpy(op, anchor, iend - anchor);
+	LZ4_memcpy(op, anchor, iend - anchor);
 	op += iend - anchor;
 	/* End */
 	return (int)(((char *)op) - dest);
