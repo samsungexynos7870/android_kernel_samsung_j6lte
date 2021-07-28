@@ -46,27 +46,27 @@ do
 		custom)
 		echo -e "insert slv"
 		read nslv
-		export LOCALVERSION=$blv$slv
+		export LOCALVERSION=$nslv
 		break
 		;;
 		-perf+)
 		export LOCALVERSION=$slv
-		perf=y
+		perf='y'
 		break
 		;;
 	esac
 done
 
-echo -e "do you want to clean? (y|n)"		
+echo -e "do you want to clean? (y|n)"
 read clean
 
-if [[ clean == 'y' ]]; then
+if [[ $clean = 'y' ]]; then
 	make clean
 	make mrproper
 	make distclean
 fi
 
-if [[ $perf='y'  ]]; then
+if [[ $perf = 'y'  ]]; then
 	make j6lte-perf_defconfig
 else
 	make j6lte_defconfig
