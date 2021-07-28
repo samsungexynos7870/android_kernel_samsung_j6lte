@@ -21,11 +21,12 @@ export PLATFORM_VERSION=10
 blv="-ice 🧊"
 
 echo -e "select sublv: "
-sublvs="-beta -alpha -stable custom"
+sublvs="-beta -alpha -stable custom -perf+"
 selectsublv="1) -beta
 2) -alpha
 3) -stable
-4) custom"
+4) custom
+5) -perf+"
 
 select slv in $sublvs
 do
@@ -48,6 +49,11 @@ do
 		export LOCALVERSION=$blv$slv
 		break
 		;;
+		-perf+)
+		export LOCALVERSION=$slv
+		perf=y
+		break
+		;;
 	esac
 done
 
@@ -60,7 +66,11 @@ if [[ clean == 'y' ]]; then
 	make distclean
 fi
 
-make j6lte_defconfig
+if [[ $perf='y'  ]]; then
+	make j6lte-perf_defconfig
+else
+	make j6lte_defconfig
+fi
 make exynos7870-j6lte_cis_ser_00.dtb
 make exynos7870-j6lte_cis_ser_02.dtb
 ./tools/dtbtool arch/arm64/boot/dts/ -o arch/arm64/boot/dtb
