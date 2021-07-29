@@ -16,17 +16,20 @@
 
 export ARCH=arm64
 export CROSS_COMPILE="/home/fra/gcc/bin/aarch64-none-linux-gnu-"
-export PLATFORM_VERSION=10
+
+echo -e "select pv: "
+read pv
+export PLATFORM_VERSION=$pv
 
 blv="-ice 🧊"
 
 echo -e "select sublv: "
-sublvs="-beta -alpha -stable custom -perf+"
+sublvs="-beta -alpha -stable custom -ice+"
 selectsublv="1) -beta
 2) -alpha
 3) -stable
 4) custom
-5) -perf+"
+5) -ice+"
 
 select slv in $sublvs
 do
@@ -47,10 +50,11 @@ do
 		echo -e "insert slv"
 		read nslv
 		export LOCALVERSION=$nslv
+		custom='y'
 		break
 		;;
-		-perf+)
-		export LOCALVERSION=$slv
+		-ice+)
+		export LOCALVERSION="-ice+ 🧊"
 		perf='y'
 		break
 		;;
@@ -66,8 +70,11 @@ if [[ $clean = 'y' ]]; then
 	make distclean
 fi
 
-if [[ $perf = 'y'  ]]; then
+if [[ $perf = 'y' ]]; then
 	make j6lte-perf_defconfig
+elif [[ -z $perf && $pv='8' ]]; then
+	make j6lte-oreo_defconfig
+	export LOCALVERSION="-ice"
 else
 	make j6lte_defconfig
 fi
@@ -92,7 +99,11 @@ cd ./AnyKernel3
 if [[ -f Image ]]; then
 		while [[ -f ../$zipname ]]
 		do
-			zipname="ice$slv-$(date +'%d%m%Y')-$RANDOM"
+			if [[ $custom = 'y'  ]]; then
+				zipname="ice$nslv-$(date +'%d%m%Y')-$RANDOM"
+			else
+				zipname="ice$slv-$(date +'%d%m%Y')-$RANDOM"
+			fi
 		done
 	zip -r9 $zipname *
 	cp *.zip ../
