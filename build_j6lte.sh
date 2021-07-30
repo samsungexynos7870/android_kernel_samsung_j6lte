@@ -72,16 +72,14 @@ fi
 
 if [[ $perf = 'y' ]]; then
 	make j6lte-perf_defconfig
-elif [[ -z $perf && $pv='8' ]]; then
-	make j6lte-oreo_defconfig
-	export LOCALVERSION="-ice"
 else
 	make j6lte_defconfig
 fi
 make exynos7870-j6lte_cis_ser_00.dtb
 make exynos7870-j6lte_cis_ser_02.dtb
 ./tools/dtbtool arch/arm64/boot/dts/ -o arch/arm64/boot/dtb
-make -j69
+PATH="/home/fra/proton-clang/bin:/home/fra/gcc/bin:${PATH}" \
+make CC=clang -j69
 rm -rf arch/arm64/boot/dts/*.dtb
 
 if [[ ! -d "AnyKernel3" ]]; then
