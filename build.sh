@@ -31,15 +31,15 @@ selectsublv="1) beta
 select slv in $sublvs
 do
 	case $slv in
-		-beta)
+		beta)
 		export LOCALVERSION=$blv$slv
 		break
 		;;
-		-alpha)
+		alpha)
 		export LOCALVERSION=$blv$slv
 		break
 		;;
-		-stable)
+		stable)
 		export LOCALVERSION=$blv$slv
 		break
 		;;
