@@ -16,18 +16,15 @@
 
 export ARCH=arm64
 export CROSS_COMPILE="/home/fra/gcc/bin/aarch64-none-linux-gnu-"
+export PLATFORM_VERSION=10
 
-echo -e "select pv: "
-read pv
-export PLATFORM_VERSION=$pv
-
-blv="-ice 🧊"
+blv="-ice "
 
 echo -e "select sublv: "
-sublvs="-beta -alpha -stable custom -ice+"
-selectsublv="1) -beta
-2) -alpha
-3) -stable
+sublvs="beta alpha stable custom ice+"
+selectsublv="1) beta
+2) alpha
+3) stable
 4) custom
 5) -ice+"
 
@@ -54,8 +51,7 @@ do
 		break
 		;;
 		-ice+)
-		export LOCALVERSION="-ice+ 🧊"
-		perf='y'
+		export LOCALVERSION="-ice+"
 		break
 		;;
 	esac
@@ -70,11 +66,7 @@ if [[ $clean = 'y' ]]; then
 	make distclean
 fi
 
-if [[ $perf = 'y' ]]; then
-	make j6lte-perf_defconfig
-else
-	make j6lte_defconfig
-fi
+make j6lte-perf_defconfig
 make exynos7870-j6lte_cis_ser_00.dtb
 make exynos7870-j6lte_cis_ser_02.dtb
 ./tools/dtbtool arch/arm64/boot/dts/ -o arch/arm64/boot/dtb
