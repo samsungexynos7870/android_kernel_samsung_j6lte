@@ -82,6 +82,7 @@ static void decon_set_protected_content(struct decon_device *decon,
 static atomic_t extra_vsync_wait;
 #endif /* CCONFIG_USE_VSYNC_SKIP */
 
+#ifdef CONFIG_TRACING_SUPPORT
 #define SYSTRACE_C_BEGIN(a) do { \
 	decon->tracing_mark_write(decon->systrace_pid, 'C', a, 1);	\
 	} while(0)
@@ -93,6 +94,7 @@ static atomic_t extra_vsync_wait;
 #define SYSTRACE_C_MARK(a,b) do { \
 	decon->tracing_mark_write(decon->systrace_pid, 'C', a, (b));	\
 	} while(0)
+#endif
 
 /*----------------- function for systrace ---------------------------------*/
 /* history (1): 15.11.10
@@ -114,6 +116,7 @@ static atomic_t extra_vsync_wait;
 * all code is registred in decon srtucture.
 */
 
+#ifdef CONFIG_TRACING_SUPPORT
 static void tracing_mark_write( int pid, char id, char* str1, int value )
 {
 	char buf[80];
@@ -136,6 +139,7 @@ static void tracing_mark_write( int pid, char id, char* str1, int value )
 
 	trace_puts(buf);
 }
+#endif
 /*-----------------------------------------------------------------*/
 
 void decon_dump(struct decon_device *decon)
@@ -2492,8 +2496,6 @@ static void decon_update_regs(struct decon_device *decon, struct decon_reg_data 
 	if (!decon->systrace_pid)
 		decon->systrace_pid = current->pid;
 
-	decon->tracing_mark_write(decon->systrace_pid, 'B', "decon_update_regs", 0);
-
 	if (decon->state == DECON_STATE_LPD)
 		decon_exit_lpd(decon);
 
@@ -2506,8 +2508,6 @@ static void decon_update_regs(struct decon_device *decon, struct decon_reg_data 
 			decon->pdata->max_win *
 			MAX_BUF_PLANE_CNT);
 
-	decon->tracing_mark_write(decon->systrace_pid, 'B', "decon_fence_wait", 0);
-
 	for (i = 0; i < decon->pdata->max_win; i++) {
 		for (j = 0; j < MAX_BUF_PLANE_CNT; ++j)
 			old_dma_bufs[i][j] = decon->windows[i]->dma_buf_data[j];
@@ -2517,8 +2517,6 @@ static void decon_update_regs(struct decon_device *decon, struct decon_reg_data 
 				decon_abd_save_fto(&decon->abd, regs->dma_buf_data[i][0].fence);
 		}
 	}
-
-	decon->tracing_mark_write(decon->systrace_pid, 'E', "decon_fence_wait", 0);
 
 	if (decon->prev_bw != regs->bandwidth)
 		decon_set_qos(decon, regs, false, false);
@@ -2592,7 +2590,6 @@ static void decon_update_regs(struct decon_device *decon, struct decon_reg_data 
 	if (decon->prev_bw != regs->bandwidth)
 		decon_set_qos(decon, regs, true, false);
 
-	decon->tracing_mark_write(decon->systrace_pid, 'E', "decon_update_regs", 0);
 }
 
 static void decon_update_regs_handler(struct kthread_work *work)
@@ -2611,11 +2608,9 @@ static void decon_update_regs_handler(struct kthread_work *work)
 	mutex_unlock(&decon->update_regs_list_lock);
 
 	list_for_each_entry_safe(data, next, &saved_list, list) {
-		decon->tracing_mark_write(decon->systrace_pid, 'C', "update_regs_list", decon->update_regs_list_cnt);
 		decon_update_regs(decon, data);
 		decon_lpd_unblock(decon);
 		list_del(&data->list);
-		decon->tracing_mark_write(decon->systrace_pid, 'C', "update_regs_list", --decon->update_regs_list_cnt);
 		kfree(data);
 	}
 }
@@ -4365,9 +4360,7 @@ static int decon_probe(struct platform_device *pdev)
 
 	/* systrace */
 	decon->systrace_pid = 0;
-	decon->tracing_mark_write = tracing_mark_write;
 	decon->update_regs_list_cnt = 0;
-	decon->tracing_mark_write(decon->systrace_pid, 'C', "update_regs_list", decon->update_regs_list_cnt);
 
 	/* init work thread for update registers */
 	INIT_LIST_HEAD(&decon->update_regs_list);

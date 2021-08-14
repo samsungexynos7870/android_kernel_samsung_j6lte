@@ -2320,6 +2320,7 @@ void exynos_ss_freq(int type, unsigned long old_freq, unsigned long target_freq,
 }
 #endif
 
+#ifdef CONFIG_TRACING_SUPPORT
 void exynos_ss_i2c_clk(struct clk *clk, int bus_id, int en)
 {
 	struct exynos_ss_item *item = &ess_items[ess_desc.kevents_num];
@@ -2340,6 +2341,7 @@ void exynos_ss_i2c_clk(struct clk *clk, int bus_id, int en)
 		ess_log->i2c_clk[i].en = en;
 	}
 }
+#endif
 
 #ifdef CONFIG_EXYNOS_SNAPSHOT_HRTIMER
 void exynos_ss_hrtimer(void *timer, s64 *now, void *fn, int en)

@@ -847,9 +847,13 @@ static int s3c24xx_i2c_xfer(struct i2c_adapter *adap,
 	int ret;
 
 	pm_runtime_get_sync(&adap->dev);
+	#ifdef CONFIG_TRACING_SUPPORT
 	exynos_ss_i2c_clk(i2c->clk, i2c->bus_id, 0x1);
+	#endif
 	clk_prepare_enable(i2c->clk);
+	#ifdef CONFIG_TRACING_SUPPORT
 	exynos_ss_i2c_clk(i2c->clk, i2c->bus_id, 0x3);
+	#endif
 
 	for (retry = 0; retry < adap->retries; retry++) {
 
@@ -859,9 +863,13 @@ static int s3c24xx_i2c_xfer(struct i2c_adapter *adap,
 		ret = s3c24xx_i2c_doxfer(i2c, msgs, num);
 
 		if (ret != -EAGAIN) {
+			#ifdef CONFIG_TRACING_SUPPORT
 			exynos_ss_i2c_clk(i2c->clk, i2c->bus_id, 0x11);
+			#endif
 			clk_disable_unprepare(i2c->clk);
+			#ifdef CONFIG_TRACING_SUPPORT
 			exynos_ss_i2c_clk(i2c->clk, i2c->bus_id, 0x13);
+			#endif
 			pm_runtime_put(&adap->dev);
 			return ret;
 		}
@@ -871,9 +879,13 @@ static int s3c24xx_i2c_xfer(struct i2c_adapter *adap,
 		udelay(100);
 	}
 
+	#ifdef CONFIG_TRACING_SUPPORT
 	exynos_ss_i2c_clk(i2c->clk, i2c->bus_id, 0x11);
+	#endif
 	clk_disable_unprepare(i2c->clk);
+	#ifdef CONFIG_TRACING_SUPPORT
 	exynos_ss_i2c_clk(i2c->clk, i2c->bus_id, 0x13);
+	#endif
 	pm_runtime_put(&adap->dev);
 	return -EREMOTEIO;
 }
