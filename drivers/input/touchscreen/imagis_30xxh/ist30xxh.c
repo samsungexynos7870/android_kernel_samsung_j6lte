@@ -51,11 +51,20 @@
 #include "ist30xxh_cmcs.h"
 #endif
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+#include <linux/trustedui.h>
+#endif
+
 #ifdef IST30XX_USE_KEY
 int ist30xx_key_code[] = IST30XX_KEY_CODES;
 #endif
 
 struct ist30xx_data *ts_data;
+
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+struct ist30xx_data *tui_tsp_ist_info;
+extern int tui_force_close(uint32_t arg);
+#endif
 
 int ist30xx_log_level = IST30XX_LOG_LEVEL;
 void tsp_printk(int level, const char *fmt, ...)
@@ -132,6 +141,12 @@ void ist30xx_enable_irq(struct ist30xx_data *data)
 
 void ist30xx_scheduled_reset(struct ist30xx_data *data)
 {
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
+		tsp_err("%s return, TUI is enabled!\n", __func__);
+		return;
+	}
+#endif
 	if (likely(data->initialized))
 		schedule_delayed_work(&data->work_reset_check, 0);
 }
@@ -955,6 +970,20 @@ static int ist30xx_suspend(struct device *dev)
 	if (data->debugging_mode)
 		return 0;
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if(TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()){	
+		tsp_err("%s TUI cancel event call!\n", __func__);
+		msleep(100);
+		tui_force_close(1);
+		msleep(200);
+		if(TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()){	
+			tsp_err("%s TUI flag force clear!\n", __func__);
+			trustedui_clear_mask(TRUSTEDUI_MODE_VIDEO_SECURED|TRUSTEDUI_MODE_INPUT_SECURED);
+			trustedui_set_mode(TRUSTEDUI_MODE_OFF);
+		}
+	}
+#endif
+
 	del_timer(&data->event_timer);
 	cancel_delayed_work_sync(&data->work_reset_check);
 #ifdef IST30XX_NOISE_MODE
@@ -1017,6 +1046,20 @@ static int ist30xx_resume(struct device *dev)
 
 	if (data->debugging_mode && data->status.power)
 		return 0;
+
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if(TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()){	
+		tsp_err("%s TUI cancel event call!\n", __func__);
+		msleep(100);
+		tui_force_close(1);
+		msleep(200);
+		if(TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()){	
+			tsp_err("%s TUI flag force clear!\n", __func__);
+			trustedui_clear_mask(TRUSTEDUI_MODE_VIDEO_SECURED|TRUSTEDUI_MODE_INPUT_SECURED);
+			trustedui_set_mode(TRUSTEDUI_MODE_OFF);
+		}
+	}
+#endif
 
 #ifdef CONFIG_TOUCHSCREEN_IMAGIS_LPM_NO_RESET
 	mutex_lock(&data->lock);
@@ -1282,6 +1325,13 @@ static void reset_work_func(struct work_struct *work)
 	struct ist30xx_data *data = container_of(delayed_work, struct ist30xx_data,
 	work_reset_check);
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
+		tsp_err("%s return, TUI is enabled!\n", __func__);
+		return;
+	}
+#endif
+
 	if (unlikely((data == NULL) || (data->client == NULL)))
 		return;
 
@@ -1325,6 +1375,12 @@ static void noise_work_func(struct work_struct *work)
 	struct delayed_work *delayed_work = to_delayed_work(work);
 	struct ist30xx_data *data = container_of(delayed_work, struct ist30xx_data,
 	work_noise_protect);
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
+		tsp_err("%s return, TUI is enabled!\n", __func__);
+		return;
+	}
+#endif
 	ret = ist30xx_read_reg(data->client, IST30XX_HIB_TOUCH_STATUS,
 			&touch_status);
 	if (unlikely(ret)) {
@@ -1560,6 +1616,38 @@ static void ist30xx_free_gpio(struct ist30xx_data *data)
 }
 #endif
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+void trustedui_mode_ist_on(void) {
+	tsp_info("%s, release all finger..", __func__);
+	clear_input_data(tui_tsp_ist_info);
+
+	del_timer(&tui_tsp_ist_info->event_timer);
+
+	cancel_delayed_work_sync(&tui_tsp_ist_info->work_reset_check);
+#ifdef IST30XX_NOISE_MODE
+	cancel_delayed_work_sync(&tui_tsp_ist_info->work_noise_protect);
+#else
+#ifdef IST30XX_FORCE_RELEASE
+	cancel_delayed_work_sync(&tui_tsp_ist_info->work_force_release);
+#endif
+#endif
+	cancel_delayed_work_sync(&tui_tsp_ist_info->work_debug_algorithm);
+	tui_tsp_ist_info->status.noise_mode = false;
+}
+EXPORT_SYMBOL(trustedui_mode_ist_on);
+
+void trustedui_mode_ist_off(void) {
+	tsp_info("%s ", __func__);
+
+	//ist30xx_start(tui_tsp_ist_info);
+	tui_tsp_ist_info->status.noise_mode = true;
+
+	mod_timer(&tui_tsp_ist_info->event_timer, get_jiffies_64() +
+				(HZ * tui_tsp_ist_info->timer_period_ms / 1000));	//EVENT_TIMER_INTERVAL
+} 
+EXPORT_SYMBOL(trustedui_mode_ist_off);
+#endif
+
 static int ist30xx_probe(struct i2c_client *client,
         const struct i2c_device_id *id)
 {
@@ -1711,6 +1799,11 @@ static int ist30xx_probe(struct i2c_client *client,
 	if (unlikely(ret))
 		goto err_init_drv;
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	trustedui_set_tsp_irq(client->irq);
+	tsp_info("%s[%d] called!\n", __func__, client->irq);
+#endif
+
 #ifdef IST30XX_INTERNAL_BIN
 	ret = ist30xx_auto_bin_update(data);
 	if (unlikely(ret != 0))
@@ -1785,6 +1878,10 @@ static int ist30xx_probe(struct i2c_client *client,
 
 	ist30xx_start(data);
 	data->initialized = true;
+
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	tui_tsp_ist_info = data;
+#endif
 
 	tsp_info("### IMAGIS probe success ###\n");
 

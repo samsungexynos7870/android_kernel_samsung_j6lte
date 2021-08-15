@@ -1018,6 +1018,22 @@ static ssize_t fts_scrub_position(struct device *dev,
 	return snprintf(buf, SEC_CMD_BUF_SIZE, "%s\n", buff);
 }
 
+#if 0 //def CONFIG_TRUSTONIC_TRUSTED_UI
+static void tui_mode_cmd(struct fts_ts_info *info)
+{
+	struct sec_cmd_data *sec = &info->sec;
+	char buff[16] = "TUImode:FAIL";
+
+	sec_cmd_set_default_result(sec);
+	sec_cmd_set_cmd_result(sec, buff, strnlen(buff, sizeof(buff)));
+
+	sec->cmd_state = SEC_CMD_STATUS_NOT_APPLICABLE;
+	sec_cmd_set_cmd_exit(sec);
+
+	input_info(true, &info->client->dev, "%s: %s\n", __func__, buff);
+}
+#endif
+
 static void not_support_cmd(void *device_data)
 {
 	struct sec_cmd_data *sec = (struct sec_cmd_data *)device_data;
@@ -4836,8 +4852,24 @@ static void clear_cover_mode(void *device_data)
 		if (sec->cmd_param[0] > 1) {
 			info->flip_enable = true;
 			info->cover_type = sec->cmd_param[1];
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+			if (TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()) {
+				fts_delay(500);
+				tui_force_close(1);
+				fts_delay(200);
+				if (TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()) {
+					trustedui_clear_mask(TRUSTEDUI_MODE_VIDEO_SECURED|TRUSTEDUI_MODE_INPUT_SECURED);
+					trustedui_set_mode(TRUSTEDUI_MODE_OFF);
+				}
+			}
+
+			tui_cover_mode_set(true);
+#endif
 		} else {
 			info->flip_enable = false;
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+			tui_cover_mode_set(false);
+#endif
 		}
 
 		if (info->fts_power_state != FTS_POWER_STATE_POWERDOWN && info->reinit_done) {

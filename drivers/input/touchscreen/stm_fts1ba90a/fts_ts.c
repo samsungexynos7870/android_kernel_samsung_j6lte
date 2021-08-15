@@ -47,6 +47,12 @@
 #ifdef CONFIG_SEC_SYSFS
 #include <linux/sec_sysfs.h>
 #endif
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+#include <linux/t-base-tui.h>
+#endif
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI_QC
+#include <linux/input/tui_hal_ts.h>
+#endif
 #include "fts_ts.h"
 
 #if defined(CONFIG_SECURE_TOUCH)
@@ -266,6 +272,9 @@ static ssize_t fts_secure_touch_enable_store(struct device *dev,
 
 		input_info(true, &info->client->dev, "%s: secure_touch is disabled\n", __func__);
 
+#if defined(CONFIG_TRUSTONIC_TRUSTED_UI_QC)
+		complete(&info->st_irq_received);
+#endif
 		break;
 
 	case 1:
@@ -309,6 +318,9 @@ static ssize_t fts_secure_touch_enable_store(struct device *dev,
 
 		reinit_completion(&info->st_powerdown);
 		reinit_completion(&info->st_interrupt);
+#if defined(CONFIG_TRUSTONIC_TRUSTED_UI_QC)
+		reinit_completion(&info->st_irq_received);
+#endif
 		atomic_set(&info->st_enabled, 1);
 		atomic_set(&info->st_pending_irqs, 0);
 
@@ -326,6 +338,35 @@ static ssize_t fts_secure_touch_enable_store(struct device *dev,
 
 	return err;
 }
+
+#if defined(CONFIG_TRUSTONIC_TRUSTED_UI_QC)
+static int secure_get_irq(struct device *dev)
+{
+	struct fts_ts_info *info = dev_get_drvdata(dev);
+	int val = 0;
+
+	input_err(true, &info->client->dev, "%s: enter\n", __func__);
+	if (atomic_read(&info->st_enabled) == 0) {
+		input_err(true, &info->client->dev, "%s: disabled\n", __func__);
+		return -EBADF;
+	}
+
+	if (atomic_cmpxchg(&info->st_pending_irqs, -1, 0) == -1) {
+		input_err(true, &info->client->dev, "%s: pending irq -1\n", __func__);
+		return -EINVAL;
+	}
+
+	if (atomic_cmpxchg(&info->st_pending_irqs, 1, 0) == 1)
+		val = 1;
+
+	input_err(true, &info->client->dev, "%s: pending irq is %d\n",
+			__func__, atomic_read(&info->st_pending_irqs));
+
+	complete(&info->st_interrupt);
+
+	return val;
+}
+#endif
 
 static ssize_t fts_secure_touch_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -361,6 +402,10 @@ static void fts_secure_touch_init(struct fts_ts_info *info)
 
 	init_completion(&info->st_powerdown);
 	init_completion(&info->st_interrupt);
+#if defined(CONFIG_TRUSTONIC_TRUSTED_UI_QC)
+	init_completion(&info->st_irq_received);
+#endif
+
 	info->core_clk = clk_get(&info->client->adapter->dev, "core_clk");
 	if (IS_ERR(info->core_clk)) {
 		ret = PTR_ERR(info->core_clk);
@@ -377,6 +422,12 @@ static void fts_secure_touch_init(struct fts_ts_info *info)
 		goto err_iface_clk;
 	}
 
+#if defined(CONFIG_TRUSTONIC_TRUSTED_UI_QC)
+	register_tui_hal_ts(&info->input_dev->dev, &info->st_enabled,
+			&info->st_irq_received, secure_get_irq,
+			fts_secure_touch_enable_store);
+#endif
+
 	return;
 
 err_iface_clk:
@@ -389,6 +440,10 @@ static void fts_secure_touch_stop(struct fts_ts_info *info, int blocking)
 	if (atomic_read(&info->st_enabled)) {
 		atomic_set(&info->st_pending_irqs, -1);
 		sysfs_notify(&info->input_dev->dev.kobj, NULL, "secure_touch");
+#if defined(CONFIG_TRUSTONIC_TRUSTED_UI_QC)
+		complete(&info->st_irq_received);
+#endif
+
 		if (blocking)
 			wait_for_completion_interruptible(&info->st_powerdown);
 	}
@@ -399,6 +454,9 @@ static irqreturn_t fts_filter_interrupt(struct fts_ts_info *info)
 	if (atomic_read(&info->st_enabled)) {
 		if (atomic_cmpxchg(&info->st_pending_irqs, 0, 1) == 0) {
 			sysfs_notify(&info->input_dev->dev.kobj, NULL, "secure_touch");
+#if defined(CONFIG_TRUSTONIC_TRUSTED_UI_QC)
+			complete(&info->st_irq_received);
+#endif
 		} else {
 			input_info(true, &info->client->dev, "%s: st_pending_irqs: %d\n",
 					__func__, atomic_read(&info->st_pending_irqs));
@@ -421,6 +479,13 @@ int fts_write_reg(struct fts_ts_info *info,
 		goto exit;
 	}
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
+		input_err(true, &info->client->dev,
+				"%s: TSP no accessible from Linux, TUI is enabled!\n", __func__);
+		return -EIO;
+	}
+#endif
 #ifdef CONFIG_SECURE_TOUCH
 	if (atomic_read(&info->st_enabled)) {
 		input_err(true, &info->client->dev,
@@ -477,6 +542,13 @@ int fts_read_reg(struct fts_ts_info *info, u8 *reg, int cnum,
 		goto exit;
 	}
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
+		input_err(true, &info->client->dev,
+				"%s: TSP no accessible from Linux, TUI is enabled!\n", __func__);
+		return -EIO;
+	}
+#endif
 #ifdef CONFIG_SECURE_TOUCH
 	if (atomic_read(&info->st_enabled)) {
 		input_err(true, &info->client->dev,
@@ -545,6 +617,13 @@ static int fts_read_from_sponge(struct fts_ts_info *info,
 	u8 *buf;
 	int rtn;
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
+		input_err(true, &info->client->dev,
+				"%s: TSP no accessible from Linux, TUI is enabled!\n", __func__);
+		return -EIO;
+	}
+#endif
 #ifdef CONFIG_SECURE_TOUCH
 	if (atomic_read(&info->st_enabled)) {
 		input_err(true, &info->client->dev,
@@ -588,6 +667,13 @@ static int fts_write_to_sponge(struct fts_ts_info *info,
 		return 0;
 	}
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
+		input_err(true, &info->client->dev,
+				"%s: TSP no accessible from Linux, TUI is enabled!\n", __func__);
+		return -EIO;
+	}
+#endif
 #ifdef CONFIG_SECURE_TOUCH
 	if (atomic_read(&info->st_enabled)) {
 		input_err(true, &info->client->dev,
@@ -2545,6 +2631,11 @@ static int fts_probe(struct i2c_client *client, const struct i2c_device_id *idp)
 		goto err_enable_irq;
 	}
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	trustedui_set_tsp_irq(info->irq);
+	input_info(true, &client->dev, "%s[%d] called!\n", __func__, info->irq);
+#endif
+
 #ifdef FTS_SUPPORT_TA_MODE
 	info->register_cb = info->board->register_cb;
 
@@ -3053,6 +3144,14 @@ void fts_release_all_finger(struct fts_ts_info *info)
 
 	info->check_multi = 0;
 }
+
+#if 0/*def CONFIG_TRUSTONIC_TRUSTED_UI*/
+void trustedui_mode_on(void)
+{
+	input_info(true, &tui_tsp_info->client->dev, "%s, release all finger..", __func__);
+	fts_release_all_finger(tui_tsp_info);
+}
+#endif
 
 #ifdef CONFIG_TOUCHSCREEN_DUMP_MODE
 static void dump_tsp_rawdata(struct work_struct *work)

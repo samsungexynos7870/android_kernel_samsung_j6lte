@@ -772,4 +772,9 @@ int ist30xx_write_sec_info(struct ist30xx_data *data, u8 idx, u32 *buf32,int len
 int ist30xx_read_sec_info(struct ist30xx_data *data, u8 idx, u32 *buf32, int len);
 #endif
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+extern void trustedui_mode_on(void);
+extern void trustedui_mode_off(void);
+#endif
+
 #endif  /* __IST30XXH_H__ */

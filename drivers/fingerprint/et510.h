@@ -33,6 +33,14 @@
 #include <linux/of_dma.h>
 #include <linux/amba/bus.h>
 #include <linux/amba/pl330.h>
+#if defined(CONFIG_SECURE_OS_BOOSTER_API)
+#if defined(CONFIG_SOC_EXYNOS8890) || defined(CONFIG_SOC_EXYNOS7870) \
+	|| defined(CONFIG_SOC_EXYNOS7880) || defined(CONFIG_SOC_EXYNOS7570)
+#include <soc/samsung/secos_booster.h>
+#else
+#include <mach/secos_booster.h>
+#endif
+#endif
 
 struct sec_spi_info {
 	int		port;

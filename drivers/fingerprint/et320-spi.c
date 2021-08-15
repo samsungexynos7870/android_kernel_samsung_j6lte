@@ -687,8 +687,26 @@ static long etspi_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			u8 retry_cnt = 0;
 			pr_info("%s FP_CPU_SPEEDUP ON:%d, retry: %d\n",
 				__func__, ioc->len, retry_cnt);
+#if defined(CONFIG_SECURE_OS_BOOSTER_API)
+			do {
+				retval = secos_booster_start(ioc->len - 1);
+				retry_cnt++;
+				if (retval) {
+					pr_err("%s: booster start failed. (%d) retry: %d\n"
+						, __func__, retval, retry_cnt);
+					if (retry_cnt < 7)
+						usleep_range(500, 510);
+				}
+			} while (retval && retry_cnt < 7);
+#endif
 		} else {
 			pr_info("%s FP_CPU_SPEEDUP OFF\n", __func__);
+#if defined(CONFIG_SECURE_OS_BOOSTER_API)
+			retval = secos_booster_stop();
+			if (retval)
+				pr_err("%s: booster stop failed. (%d)\n"
+					, __func__, retval);
+#endif
 		}
 		break;
 	case FP_SET_SENSOR_TYPE:

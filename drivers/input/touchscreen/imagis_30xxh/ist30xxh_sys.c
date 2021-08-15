@@ -27,6 +27,10 @@
 #include "ist30xxh.h"
 #include "ist30xxh_update.h"
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+#include <linux/trustedui.h>
+#endif
+
 /******************************************************************************
  * Return value of Error
  * EPERM  : 1 (Operation not permitted)
@@ -147,6 +151,13 @@ int ist30xx_i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
     u8 *msg_buf = NULL;
     u8 *pbuf = NULL;
     int trans_size, max_size = 0;
+
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
+		tsp_err("%s TSP no accessible from Linux, TUI is enabled!\n", __func__);
+		return -EIO;
+	}
+#endif
 
     if (msg_num == WRITE_CMD_MSG_LEN)
         max_size = I2C_MAX_WRITE_SIZE;
@@ -285,6 +296,13 @@ int ist30xx_read_reg(struct i2c_client *client, u32 reg, u32 *buf)
         },
     };
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
+		tsp_err("%s TSP no accessible from Linux, TUI is enabled!\n", __func__);
+		return -EIO;
+	}
+#endif
+
     ret = i2c_transfer(client->adapter, msg, READ_CMD_MSG_LEN);
     if (ret != READ_CMD_MSG_LEN) {
         data->comm_err_count++;
@@ -328,6 +346,13 @@ int ist30xx_write_cmd(struct ist30xx_data *data, u32 cmd, u32 val)
     msg.flags = 0;
     msg.len = IST30XX_ADDR_LEN + IST30XX_DATA_LEN;
     msg.buf = msg_buf;
+
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
+		tsp_err("%s TSP no accessible from Linux, TUI is enabled!\n", __func__);
+		return -EIO;
+	}
+#endif
 
     ret = i2c_transfer(data->client->adapter, &msg, WRITE_CMD_MSG_LEN);
     if (ret != WRITE_CMD_MSG_LEN) {

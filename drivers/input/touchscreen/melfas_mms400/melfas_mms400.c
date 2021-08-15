@@ -11,6 +11,14 @@
 struct wake_lock mms_wake_lock;
 #endif
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+#include <linux/trustedui.h>
+#endif
+
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+extern int tui_force_close(uint32_t arg);
+struct mms_ts_info *tui_tsp_info;
+#endif
 /**
  * Reboot chip
  *
@@ -55,6 +63,13 @@ int mms_i2c_read(struct mms_ts_info *info, char *write_buf, unsigned int write_l
 			.len = read_len,
 		},
 	};
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
+		dev_err(&info->client->dev, 
+			"%s TSP no accessible from Linux, TUI is enabled!\n", __func__);
+		return -EIO;
+	}
+#endif
 
 	while (retry--) {
 		res = i2c_transfer(info->client->adapter, msg, ARRAY_SIZE(msg));
@@ -97,6 +112,13 @@ int mms_i2c_read_next(struct mms_ts_info *info, char *read_buf, int start_idx,
 	int res;
 	u8 rbuf[read_len];
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
+		dev_err(&info->client->dev, 
+			"%s TSP no accessible from Linux, TUI is enabled!\n", __func__);
+		return -EIO;
+	}
+#endif
 
 	while (retry--) {
 		res = i2c_master_recv(info->client, rbuf, read_len);
@@ -138,6 +160,14 @@ int mms_i2c_write(struct mms_ts_info *info, char *write_buf, unsigned int write_
 {
 	int retry = I2C_RETRY_COUNT;
 	int res;
+
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
+		dev_err(&info->client->dev, 
+			"%s TSP no accessible from Linux, TUI is enabled!\n", __func__);
+		return -EIO;
+	}
+#endif
 
 	while (retry--) {
 		res = i2c_master_send(info->client, write_buf, write_len);
@@ -260,6 +290,19 @@ static int mms_input_open(struct input_dev *dev)
 		input_info(true, &info->client->dev, "%s %s\n",
 				__func__, info->lowpower_mode ? "exit LPM mode" : "");
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+		if(TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()){
+			dev_err(&info->client->dev, "%s TUI cancel event call!\n", __func__);
+			msleep(100);
+			tui_force_close(1);
+			msleep(200);
+			if(TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()){
+				dev_err(&info->client->dev, "%s TUI flag force clear!\n",	__func__);
+				trustedui_clear_mask(TRUSTEDUI_MODE_VIDEO_SECURED|TRUSTEDUI_MODE_INPUT_SECURED);
+				trustedui_set_mode(TRUSTEDUI_MODE_OFF);
+			}
+		}
+#endif
 		if (info->ic_status >= LPM_RESUME) {
 			if (device_may_wakeup(&info->client->dev))
 				disable_irq_wake(info->client->irq);
@@ -297,6 +340,20 @@ static void mms_input_close(struct input_dev *dev)
 #if defined(MELFAS_GHOST_TOUCH_AUTO_DETECT)
 	del_timer(&info->ghost_timer);
 	cancel_delayed_work_sync(&info->ghost_check);
+#endif
+
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if(TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()){	
+		dev_err(&info->client->dev, "%s TUI cancel event call!\n", __func__);
+		msleep(100);
+		tui_force_close(1);
+		msleep(200);
+		if(TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()){	
+			dev_err(&info->client->dev, "%s TUI flag force clear!\n",	__func__);
+			trustedui_clear_mask(TRUSTEDUI_MODE_VIDEO_SECURED|TRUSTEDUI_MODE_INPUT_SECURED);
+			trustedui_set_mode(TRUSTEDUI_MODE_OFF);
+		}
+	}
 #endif
 
 	if (info->lowpower_mode) {
@@ -1261,6 +1318,10 @@ static int mms_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		goto err_platform_data;
 	}
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	tui_tsp_info = info;
+#endif
+
 	snprintf(info->phys, sizeof(info->phys), "%s/input0", dev_name(&client->dev));
 	input_dev->name = "sec_touchscreen";
 	input_dev->phys = info->phys;
@@ -1320,6 +1381,12 @@ static int mms_probe(struct i2c_client *client, const struct i2c_device_id *id)
 #if MMS_USE_NAP_MODE
 	//Wake lock for nap mode
 	wake_lock_init(&mms_wake_lock, WAKE_LOCK_SUSPEND, "mms_wake_lock");
+#endif
+
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	trustedui_set_tsp_irq(info->irq);
+	dev_err(&client->dev, "%s[%d] called!\n",
+		__func__, info->irq);
 #endif
 
 	mms_enable(info);
@@ -1420,6 +1487,13 @@ ERROR:
 	pr_err("MELFAS " CHIP_NAME " Touchscreen initialization failed.\n");
 	return ret;
 }
+
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+void trustedui_mode_on(void){
+	dev_err(&tui_tsp_info->client->dev, "%s, release all finger..\n",	__func__);
+	mms_clear_input(tui_tsp_info);
+}
+#endif
 
 /**
  * Remove driver

@@ -63,6 +63,10 @@
 #include <linux/input/input_booster.h>
 #endif
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+#include <linux/trustedui.h>
+#endif
+
 #define SUPPORTED_PALM_TOUCH
 
 extern char *saved_command_line;
@@ -711,6 +715,11 @@ u32 BUTTON_MAPPING_KEY[MAX_SUPPORTED_BUTTON_NUM] = {
 	/*KEY_DUMMY_HOME2,*/ KEY_BACK, KEY_DUMMY_BACK};
 #endif
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+struct bt532_ts_info *tui_tsp_info;
+extern int tui_force_close(uint32_t arg);
+#endif
+
 extern unsigned int lcdtype;
 #ifdef CONFIG_FB_MSM_MDSS_SAMSUNG
 extern int get_lcd_attached(char *mode);
@@ -723,6 +732,14 @@ static inline s32 read_data(struct i2c_client *client,
 	struct bt532_ts_info *info = i2c_get_clientdata(client);
 	s32 ret;
 	int count = 0;
+
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
+		input_err(true, &client->dev,
+				"%s TSP no accessible from Linux, TUI is enabled!\n", __func__);
+		return -EIO;
+	}
+#endif
 
 retry:
 	/* select register*/
@@ -781,6 +798,13 @@ static inline s32 write_data(struct i2c_client *client,
 	s32 ret;
 	int count = 0;
 	u8 pkt[66]; /* max packet */
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+		if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
+			input_err(true, &client->dev,
+					"%s TSP no accessible from Linux, TUI is enabled!\n", __func__);
+			return -EIO;
+		}
+#endif
 
 	pkt[0] = (reg) & 0xff; /* reg addr */
 	pkt[1] = (reg >> 8)&0xff;
@@ -816,6 +840,14 @@ static inline s32 write_cmd(struct i2c_client *client, u16 reg)
 	s32 ret;
 	int count = 0;
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+		if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
+			input_err(true, &client->dev,
+					"%s TSP no accessible from Linux, TUI is enabled!\n", __func__);
+			return -EIO;
+		}
+#endif
+
 retry:
 	ret = i2c_master_send(client , (u8 *)&reg , 2);
 	if (ret < 0) {
@@ -838,6 +870,14 @@ static inline s32 read_raw_data(struct i2c_client *client,
 	struct bt532_ts_info *info = i2c_get_clientdata(client);
 	s32 ret;
 	int count = 0;
+
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+		if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
+			input_err(true, &client->dev,
+					"%s TSP no accessible from Linux, TUI is enabled!\n", __func__);
+			return -EIO;
+		}
+#endif
 
 retry:
 	/* select register */
@@ -870,6 +910,14 @@ static inline s32 read_firmware_data(struct i2c_client *client,
 {
 	struct bt532_ts_info *info = i2c_get_clientdata(client);
 	s32 ret;
+
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
+		input_err(true, &client->dev,
+				"%s TSP no accessible from Linux, TUI is enabled!\n", __func__);
+		return -EIO;
+	}
+#endif
 
 	/* select register*/
 	ret = i2c_master_send(client , (u8 *)&addr , 2);
@@ -1231,6 +1279,16 @@ out:
 static void esd_timeout_handler(unsigned long data)
 {
 	struct bt532_ts_info *info = (struct bt532_ts_info *)data;
+
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	struct i2c_client *client = info->client;
+	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
+		input_err(true, &client->dev,
+				"%s TSP no accessible from Linux, TUI is enabled!\n", __func__);
+		esd_timer_stop(info);
+		return;
+	}
+#endif
 
 	info->p_esd_timeout_tmr = NULL;
 	queue_work(esd_tmr_workqueue, &info->tmr_work);
@@ -2293,6 +2351,29 @@ static void clear_report_data(struct bt532_ts_info *info)
 #define	PALM_REPORT_WIDTH	200
 #define	PALM_REJECT_WIDTH	255
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+void trustedui_mode_on(void){
+	input_info(true, &tui_tsp_info->client->dev, "%s, release all finger..", __func__);
+	clear_report_data(tui_tsp_info);
+	input_info(true, &tui_tsp_info->client->dev, "%s : esd timer disable", __func__);
+#if ESD_TIMER_INTERVAL
+	esd_timer_stop(tui_tsp_info);
+	write_reg(tui_tsp_info->client, BT532_PERIODICAL_INTERRUPT_INTERVAL, 0);
+#endif
+}
+EXPORT_SYMBOL(trustedui_mode_on);
+
+void trustedui_mode_off(void){
+	input_info(true, &tui_tsp_info->client->dev, "%s : esd timer enable", __func__);
+#if ESD_TIMER_INTERVAL
+	write_reg(tui_tsp_info->client, BT532_PERIODICAL_INTERRUPT_INTERVAL,
+		SCAN_RATE_HZ * ESD_TIMER_INTERVAL);
+	esd_timer_start(CHECK_ESD_TIMER, tui_tsp_info);
+#endif
+}
+EXPORT_SYMBOL(trustedui_mode_off);
+#endif
+
 void location_detect(struct bt532_ts_info *info, char *loc, int x, int y)
 {
 	memset(loc, 0x00, 7);
@@ -2658,6 +2739,20 @@ static int  bt532_ts_open(struct input_dev *dev)
 	struct bt532_ts_info *info = misc_info;
 	u8 prev_work_state;
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if(TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()){
+		input_err(true, &info->client->dev, "%s TUI cancel event call!\n", __func__);
+		//msleep(100);
+		tui_force_close(1);
+		msleep(300);
+		if(TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()){
+			input_err(true, &info->client->dev, "%s TUI flag force clear!\n",	__func__);
+			trustedui_clear_mask(TRUSTEDUI_MODE_VIDEO_SECURED|TRUSTEDUI_MODE_INPUT_SECURED);
+			trustedui_set_mode(TRUSTEDUI_MODE_OFF);
+		}
+	}
+#endif
+
 	if (info == NULL)
 		return 0;
 
@@ -2730,6 +2825,20 @@ static void bt532_ts_close(struct input_dev *dev)
 	struct bt532_ts_info *info = misc_info;
 	int i;
 	u8 prev_work_state;
+
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if(TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()){
+		input_err(true, &info->client->dev, "%s TUI cancel event call!\n", __func__);
+		//msleep(100);
+		tui_force_close(1);
+		msleep(300);
+		if(TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()){
+			input_err(true, &info->client->dev, "%s TUI flag force clear!\n",	__func__);
+			trustedui_clear_mask(TRUSTEDUI_MODE_VIDEO_SECURED|TRUSTEDUI_MODE_INPUT_SECURED);
+			trustedui_set_mode(TRUSTEDUI_MODE_OFF);
+		}
+	}
+#endif
 
 	if (info == NULL)
 		return;
@@ -6320,6 +6429,17 @@ static void clear_cover_mode(void *device_data)
 		if (sec->cmd_param[0] > 1) {
 			info->flip_enable = true;
 			info->cover_type = sec->cmd_param[1];
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+			if(TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()){
+				//msleep(100);
+				tui_force_close(1);
+				msleep(300);
+				if(TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()){
+					trustedui_clear_mask(TRUSTEDUI_MODE_VIDEO_SECURED|TRUSTEDUI_MODE_INPUT_SECURED);
+					trustedui_set_mode(TRUSTEDUI_MODE_OFF);
+				}
+			}
+#endif // CONFIG_TRUSTONIC_TRUSTED_UI
 		} else {
 			info->flip_enable = false;
 		}
@@ -8421,6 +8541,12 @@ static int bt532_ts_probe(struct i2c_client *client,
 	}
 	input_info(true, &client->dev, "zinitix touch probe.\r\n");
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	trustedui_set_tsp_irq(info->irq);
+	input_info(true, &client->dev, "%s[%d] called!\n",
+		__func__, info->irq);
+#endif
+
 #ifdef CONFIG_INPUT_ENABLED
 	info->input_dev->open = bt532_ts_open;
 	info->input_dev->close = bt532_ts_close;
@@ -8456,6 +8582,10 @@ static int bt532_ts_probe(struct i2c_client *client,
 	if(pdata->support_lpm_mode){
 		device_init_wakeup(&client->dev, true);
 	}
+
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	tui_tsp_info = info;
+#endif
 
 	schedule_delayed_work(&info->work_read_info, msecs_to_jiffies(5000));
 

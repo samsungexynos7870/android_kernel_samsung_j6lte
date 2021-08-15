@@ -122,6 +122,11 @@ static void sec_ts_get_key_cmoffset(struct sec_ts_data *ts,
 static int sec_ts_key_rawdata_read(struct sec_ts_data *ts,
 		u8 type, short *min, short *max);
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+extern int tui_force_close(uint32_t arg);
+extern void tui_cover_mode_set(bool arg);
+#endif
+
 static struct sec_cmd sec_cmds[] = {
 	{SEC_CMD("fw_update", fw_update),},
 	{SEC_CMD("get_fw_ver_bin", get_fw_ver_bin),},
@@ -4550,9 +4555,25 @@ static void clear_cover_mode(void *device_data)
 			ts->flip_enable = true;
 			ts->cover_type = sec->cmd_param[1];
 			ts->cover_cmd = (u8)ts->cover_type;
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+			if (TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()) {
+				sec_ts_delay(500);
+				tui_force_close(1);
+				sec_ts_delay(200);
+				if (TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()) {
+					trustedui_clear_mask(TRUSTEDUI_MODE_VIDEO_SECURED|TRUSTEDUI_MODE_INPUT_SECURED);
+					trustedui_set_mode(TRUSTEDUI_MODE_OFF);
+				}
+			}
+
+			tui_cover_mode_set(true);
+#endif
 
 		} else {
 			ts->flip_enable = false;
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+			tui_cover_mode_set(false);
+#endif
 		}
 
 		if (!ts->power_status == SEC_TS_STATE_POWER_OFF && ts->reinit_done) {

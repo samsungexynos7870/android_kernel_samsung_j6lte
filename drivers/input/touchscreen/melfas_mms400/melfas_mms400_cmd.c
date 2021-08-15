@@ -9,6 +9,9 @@
  */
 
 #include "melfas_mms400.h"
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+#include <linux/trustedui.h>
+#endif
 
 #if MMS_USE_CMD_MODE
 
@@ -1137,6 +1140,23 @@ out:
 }
 #endif
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+static void tui_mode_cmd(struct mms_ts_info *info)
+{
+	char buf[16] = "TUImode:FAIL";
+	cmd_clear_result(info);
+	cmd_set_result(info, buf, strnlen(buf, sizeof(buf)));
+
+	mutex_lock(&info->lock);
+	info->cmd_busy = false;
+	mutex_unlock(&info->lock);
+
+	info->cmd_state = CMD_STATUS_WAITING;
+	dev_err(&info->client->dev, "%s: %s(%d)\n", __func__, buf,
+		  (int)strnlen(buf, sizeof(buf)));
+}
+#endif
+
 static void spay_enable(void *device_data)
 {
 	struct mms_ts_info *info = (struct mms_ts_info *)device_data;
@@ -1366,6 +1386,10 @@ static void cmd_unknown_cmd(void *device_data)
 		__func__, buf, info->cmd_state);
 }
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+static void tui_mode_cmd(struct mms_ts_info *info);
+#endif
+
 #define MMS_CMD(name, func)	.cmd_name = name, .cmd_func = func
 
 /**
@@ -1541,6 +1565,11 @@ static ssize_t mms_sys_cmd(struct device *dev, struct device_attribute *devattr,
 			"%s - param #%d [%d]\n", __func__, i, info->cmd_param[i]);
 	}
 
+#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
+	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode())
+		tui_mode_cmd(info);
+	else
+#endif
 	//execute
 	mms_cmd_ptr->cmd_func(info);
 
