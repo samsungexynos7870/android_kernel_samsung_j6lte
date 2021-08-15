@@ -15,7 +15,7 @@
 # limitations under the License.
 
 export ARCH=arm64
-export CROSS_COMPILE="/home/fra/gcc/bin/aarch64-none-linux-gnu-"
+export CROSS_COMPILE="/home/fra/gcc/bin/aarch64-linux-gnu-"
 export PLATFORM_VERSION=10
 
 blv="-ice "
@@ -96,6 +96,7 @@ if [[ -f Image ]]; then
 			fi
 		done
 	zip -r9 $zipname *
+	echo $zipname
 	cp *.zip ../
 fi
 
