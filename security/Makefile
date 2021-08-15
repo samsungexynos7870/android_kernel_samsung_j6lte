@@ -24,7 +24,6 @@ obj-$(CONFIG_SECURITY_TOMOYO)		+= tomoyo/
 obj-$(CONFIG_SECURITY_APPARMOR)		+= apparmor/
 obj-$(CONFIG_SECURITY_YAMA)		+= yama/
 obj-$(CONFIG_CGROUP_DEVICE)		+= device_cgroup.o
-obj-$(CONFIG_SECURITY_DSMS)		+= samsung/dsms/
 
 # Object integrity file lists
 subdir-$(CONFIG_INTEGRITY)		+= integrity
