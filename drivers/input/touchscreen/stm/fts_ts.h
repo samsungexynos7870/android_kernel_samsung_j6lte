@@ -705,10 +705,6 @@ extern struct class *sec_class;
 #ifdef CONFIG_BATTERY_SAMSUNG
 extern unsigned int lpcharge;
 #endif
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-extern void trustedui_mode_on(void);
-extern int tui_force_close(uint32_t arg);
-#endif
 #if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
 extern int get_lcd_attached(char *mode);
 #endif

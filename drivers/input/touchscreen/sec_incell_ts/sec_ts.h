@@ -44,13 +44,6 @@
 #include <linux/fb.h>
 #endif
 
-#if defined(CONFIG_TRUSTONIC_TRUSTED_UI)
-#include <linux/t-base-tui.h>
-#endif
-#if defined(CONFIG_TRUSTONIC_TRUSTED_UI_QC)
-#include <linux/input/tui_hal_ts.h>
-#endif
-
 #ifdef CONFIG_SEC_SYSFS
 #include <linux/sec_sysfs.h>
 #endif
@@ -884,12 +877,6 @@ extern unsigned int lpcharge;
 
 extern void set_grip_data_to_ic(struct sec_ts_data *ts, u8 flag);
 extern void sec_ts_set_grip_type(struct sec_ts_data *ts, u8 set_type);
-
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-/*extern void trustedui_mode_on(void);*/
-/*extern void trustedui_mode_off(void);*/
-extern int tui_force_close(uint32_t arg);
-#endif
 
 extern unsigned int lcdtype;
 #endif

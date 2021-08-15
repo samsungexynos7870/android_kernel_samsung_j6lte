@@ -111,8 +111,5 @@ extern struct class *sec_class;
 extern unsigned int lcdtype;
 
 void fts_charger_infom(bool en);
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-extern void trustedui_mode_on(void);
-#endif
 #endif
 

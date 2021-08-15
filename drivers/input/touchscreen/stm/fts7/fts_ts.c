@@ -54,10 +54,6 @@
 #include <linux/of_gpio.h>
 #include <linux/sec_sysfs.h>
 
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-#include <linux/t-base-tui.h>
-#endif
-
 #ifdef CONFIG_OF
 #ifndef USE_OPEN_CLOSE
 #define USE_OPEN_CLOSE
@@ -170,14 +166,6 @@ int fts_write_reg(struct fts_ts_info *info,
 		goto exit;
 	}
 
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
-		tsp_debug_err(true, &info->client->dev,
-			"%s TSP no accessible from Linux, TUI is enabled!\n", __func__);
-		return -EIO;
-	}
-#endif
-
 	mutex_lock(&info->i2c_mutex);
 
 	xfer_msg[0].addr = info->client->addr;
@@ -204,14 +192,6 @@ int fts_read_reg(struct fts_ts_info *info, unsigned char *reg, int cnum,
 		tsp_debug_err(true, &info->client->dev, "%s: Sensor stopped\n", __func__);
 		goto exit;
 	}
-
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
-		tsp_debug_err(true, &info->client->dev,
-			"%s TSP no accessible from Linux, TUI is enabled!\n", __func__);
-		return -EIO;
-	}
-#endif
 
 	mutex_lock(&info->i2c_mutex);
 
@@ -249,14 +229,6 @@ static int fts_read_from_string(struct fts_ts_info *info,
 {
 	unsigned char string_reg[3];
 	unsigned char *buf;
-
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
-		tsp_debug_err(true, &info->client->dev,
-			"%s TSP no accessible from Linux, TUI is enabled!\n", __func__);
-		return -EIO;
-	}
-#endif
 
 	string_reg[0] = 0xD0;
 	string_reg[1] = (*reg >> 8) & 0xFF;
@@ -2442,12 +2414,6 @@ static int fts_probe(struct i2c_client *client, const struct i2c_device_id *idp)
 		goto err_enable_irq;
 	}
 
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-	trustedui_set_tsp_irq(info->irq);
-	tsp_debug_info(true, &client->dev, "%s[%d] called!\n",
-		__func__, info->irq);
-#endif
-
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	info->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
 	info->early_suspend.suspend = fts_early_suspend;
@@ -2967,13 +2933,6 @@ void fts_release_all_finger(struct fts_ts_info *info)
 
 	input_sync(info->input_dev);
 }
-
-#if 0 //def CONFIG_TRUSTONIC_TRUSTED_UI
-void trustedui_mode_on(void){
-	tsp_debug_info(true, &tui_tsp_info->client->dev, "%s, release all finger..", __func__);
-	fts_release_all_finger(tui_tsp_info);
-}
-#endif
 
 #ifdef CONFIG_SEC_DEBUG_TSP_LOG
 static void dump_tsp_rawdata(struct work_struct *work)

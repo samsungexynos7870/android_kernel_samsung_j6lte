@@ -70,12 +70,8 @@
 #include <linux/of_dma.h>
 #include <linux/amba/bus.h>
 #include <linux/amba/pl330.h>
-#if defined(CONFIG_SECURE_OS_BOOSTER_API)
 #if defined(CONFIG_SOC_EXYNOS8890) || defined(CONFIG_SOC_EXYNOS7870)
-#include <soc/samsung/secos_booster.h>
-#else
 #include <mach/secos_booster.h>
-#endif
 #endif
 
 #include <linux/smc.h>
@@ -1092,26 +1088,8 @@ static long vfsspi_ioctl(struct file *filp, unsigned int cmd,
 			u8 retry_cnt = 0;
 			pr_info("%s VFSSPI_IOCTL_CPU_SPEEDUP ON:%d, retry: %d\n",
 				__func__, onoff, retry_cnt);
-#if defined(CONFIG_SECURE_OS_BOOSTER_API)
-			do {
-				ret_val = secos_booster_start(onoff - 1);
-				retry_cnt++;
-				if (ret_val) {
-					pr_err("%s: booster start failed. (%d) retry: %d\n"
-						, __func__, ret_val, retry_cnt);
-					if (retry_cnt < 7)
-						usleep_range(500, 510);
-				}
-			} while (ret_val && retry_cnt < 7);
-#endif
 		} else {
 			pr_info("%s VFSSPI_IOCTL_CPU_SPEEDUP OFF\n", __func__);
-#if defined(CONFIG_SECURE_OS_BOOSTER_API)
-			ret_val = secos_booster_stop();
-			if (ret_val)
-				pr_err("%s: booster stop failed. (%d)\n"
-					, __func__, ret_val);
-#endif
 		}
 		break;
 	case VFSSPI_IOCTL_SET_SENSOR_TYPE:

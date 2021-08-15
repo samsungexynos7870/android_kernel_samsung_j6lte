@@ -674,9 +674,6 @@ struct fts_ts_info {
 	atomic_t st_pending_irqs;
 	struct completion st_powerdown;
 	struct completion st_interrupt;
-#if defined(CONFIG_TRUSTONIC_TRUSTED_UI_QC)
-	struct completion st_irq_received;
-#endif
 	struct clk *core_clk;
 	struct clk *iface_clk;
 #endif
@@ -782,11 +779,6 @@ extern struct class *sec_class;
 #endif
 #ifdef CONFIG_BATTERY_SAMSUNG
 extern unsigned int lpcharge;
-#endif
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-extern void trustedui_mode_on(void);
-extern int tui_force_close(uint32_t arg);
-extern void tui_cover_mode_set(bool arg);
 #endif
 #if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
 extern int get_lcd_attached(char *mode);

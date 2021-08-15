@@ -152,10 +152,6 @@ static ssize_t fts_scrub_position(struct device *dev,
 static ssize_t fts_edge_x_position(struct device *dev,
 				struct device_attribute *attr, char *buf);
 
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-static void tui_mode_cmd(struct fts_ts_info *info);
-#endif
-
 #ifdef FTS_SUPPROT_MULTIMEDIA
 static void brush_enable(void *device_data);
 static void velocity_enable(void *device_data);
@@ -537,11 +533,6 @@ static ssize_t store_cmd(struct device *dev, struct device_attribute *devattr,
 		tsp_debug_info(true, &info->client->dev, "cmd param %d= %d\n", i,
 			  info->cmd_param[i]);
 
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode())
-		tui_mode_cmd(info);
-	else
-#endif
 	ft_cmd_ptr->cmd_func(info);
 
 err_out:
@@ -644,22 +635,6 @@ static void set_cmd_result(struct fts_ts_info *info, char *buff, int len)
 {
 	strncat(info->cmd_result, buff, len);
 }
-
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-static void tui_mode_cmd(struct fts_ts_info *info)
-{
-	char buff[16] = "TUImode:FAIL";
-	set_default_result(info);
-	set_cmd_result(info, buff, strnlen(buff, sizeof(buff)));
-
-	mutex_lock(&info->cmd_lock);
-	info->cmd_is_running = false;
-	mutex_unlock(&info->cmd_lock);
-
-	info->cmd_state = CMD_STATUS_NOT_APPLICABLE;
-	tsp_debug_info(true, &info->client->dev, "%s: %s\n", __func__, buff);
-}
-#endif
 
 static void not_support_cmd(void *device_data)
 {

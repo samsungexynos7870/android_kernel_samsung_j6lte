@@ -70,9 +70,6 @@ static irqreturn_t secure_filter_interrupt(struct sec_ts_data *ts)
 		if (atomic_cmpxchg(&ts->secure_pending_irqs, 0, 1) == 0) {
 			sysfs_notify(&ts->input_dev->dev.kobj, NULL, "secure_touch");
 
-#if defined(CONFIG_TRUSTONIC_TRUSTED_UI) || defined(CONFIG_TRUSTONIC_TRUSTED_UI_QC)
-			complete(&ts->st_irq_received);
-#endif
 		} else {
 			input_info(true, &ts->client->dev, "%s: pending irq:%d\n",
 					__func__, (int)atomic_read(&ts->secure_pending_irqs));
@@ -203,9 +200,6 @@ static ssize_t secure_touch_enable_store(struct device *dev,
 
 		reinit_completion(&ts->secure_powerdown);
 		reinit_completion(&ts->secure_interrupt);
-#if defined(CONFIG_TRUSTONIC_TRUSTED_UI) || defined(CONFIG_TRUSTONIC_TRUSTED_UI_QC)
-		reinit_completion(&ts->st_irq_received);
-#endif
 		atomic_set(&ts->secure_enabled, 1);
 		atomic_set(&ts->secure_pending_irqs, 0);
 
@@ -232,9 +226,6 @@ static ssize_t secure_touch_enable_store(struct device *dev,
 		sec_ts_irq_thread(ts->client->irq, ts);
 		complete(&ts->secure_interrupt);
 		complete(&ts->secure_powerdown);
-#if defined(CONFIG_TRUSTONIC_TRUSTED_UI) || defined(CONFIG_TRUSTONIC_TRUSTED_UI_QC)
-		complete(&ts->st_irq_received);
-#endif
 
 		input_info(true, &ts->client->dev, "%s: secure touch disable\n", __func__);
 
@@ -252,34 +243,6 @@ static ssize_t secure_touch_enable_store(struct device *dev,
 
 	return count;
 }
-
-#if defined(CONFIG_TRUSTONIC_TRUSTED_UI) || defined(CONFIG_TRUSTONIC_TRUSTED_UI_QC)
-static int secure_get_irq(struct device *dev)
-{
-	struct sec_ts_data *ts = dev_get_drvdata(dev);
-	int val = 0;
-
-	if (atomic_read(&ts->secure_enabled) == SECURE_TOUCH_DISABLE) {
-		input_err(true, &ts->client->dev, "%s: disabled\n", __func__);
-		return -EBADF;
-	}
-
-	if (atomic_cmpxchg(&ts->secure_pending_irqs, -1, 0) == -1) {
-		input_err(true, &ts->client->dev, "%s: pending irq -1\n", __func__);
-		return -EINVAL;
-	}
-
-	if (atomic_cmpxchg(&ts->secure_pending_irqs, 1, 0) == 1)
-		val = 1;
-
-	input_err(true, &ts->client->dev, "%s: pending irq is %d\n",
-			__func__, atomic_read(&ts->secure_pending_irqs));
-
-	complete(&ts->secure_interrupt);
-
-	return val;
-}
-#endif
 
 static ssize_t secure_touch_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -338,10 +301,6 @@ static int secure_touch_init(struct sec_ts_data *ts)
 
 	init_completion(&ts->secure_interrupt);
 	init_completion(&ts->secure_powerdown);
-#if defined(CONFIG_TRUSTONIC_TRUSTED_UI) || defined(CONFIG_TRUSTONIC_TRUSTED_UI_QC)
-	init_completion(&ts->st_irq_received);
-#endif
-
 	ts->core_clk = clk_get(&ts->client->adapter->dev, "core_clk");
 	if (IS_ERR_OR_NULL(ts->core_clk)) {
 		input_err(true, &ts->client->dev, "%s: failed to get core_clk: %ld\n",
@@ -356,11 +315,6 @@ static int secure_touch_init(struct sec_ts_data *ts)
 		goto err_iface_clk;
 	}
 
-#if defined(CONFIG_TRUSTONIC_TRUSTED_UI) || defined(CONFIG_TRUSTONIC_TRUSTED_UI_QC)
-	register_tui_hal_ts(&ts->input_dev->dev, &ts->secure_enabled,
-			&ts->st_irq_received, secure_get_irq,
-			secure_touch_enable_store);
-#endif
 
 	return 0;
 
@@ -389,9 +343,6 @@ static void secure_touch_stop(struct sec_ts_data *ts, bool stop)
 
 		sysfs_notify(&ts->input_dev->dev.kobj, NULL, "secure_touch");
 
-#if defined(CONFIG_TRUSTONIC_TRUSTED_UI) || defined(CONFIG_TRUSTONIC_TRUSTED_UI_QC)
-		complete(&ts->st_irq_received);
-#endif
 
 		if (stop)
 			wait_for_completion_interruptible(&ts->secure_powerdown);
@@ -416,14 +367,6 @@ int sec_ts_i2c_write(struct sec_ts_data *ts, u8 reg, u8 *data, int len)
 		return -EBUSY;
 	}
 #endif
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
-		input_err(true, &ts->client->dev,
-				"%s: TSP no accessible from Linux, TRUSTED_UI is enabled!\n", __func__);
-		return -EIO;
-	}
-#endif
-
 	if (len > I2C_WRITE_BUFFER_SIZE) {
 		input_err(true, &ts->client->dev, "%s: len is larger than buffer size\n", __func__);
 		return -EINVAL;
@@ -504,14 +447,6 @@ int sec_ts_i2c_read(struct sec_ts_data *ts, u8 reg, u8 *data, int len)
 		return -EBUSY;
 	}
 #endif
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-	if (TRUSTEDUI_MODE_INPUT_SECURED & trustedui_get_current_mode()) {
-		input_err(true, &ts->client->dev,
-				"%s: TSP no accessible from Linux, TRUSTED_UI is enabled!\n", __func__);
-		return -EIO;
-	}
-#endif
-
 	if (ts->power_status == SEC_TS_STATE_POWER_OFF) {
 		input_err(true, &ts->client->dev, "%s: POWER_STATUS : OFF\n", __func__);
 		goto err;
@@ -2491,14 +2426,6 @@ static int sec_ts_probe(struct i2c_client *client, const struct i2c_device_id *i
 		goto err_irq;
 	}
 
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-	tsp_info = ts;
-
-	trustedui_set_tsp_irq(client->irq);
-	input_info(true, &client->dev, "%s[%d] called!\n",
-			__func__, client->irq);
-#endif
-
 	/* need remove below resource @ remove driver */
 #if !defined(CONFIG_SAMSUNG_PRODUCT_SHIP)
 	sec_ts_raw_device_init(ts);
@@ -2591,9 +2518,6 @@ error_allocate_pdata:
 	p_ghost_check = NULL;
 #endif
 	ts_dup = NULL;
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-	tsp_info = NULL;
-#endif
 	input_err(true, &client->dev, "%s: failed(%d)\n", __func__, ret);
 	input_log_fix();
 	return ret;
@@ -2955,20 +2879,6 @@ static int sec_ts_input_open(struct input_dev *dev)
 
 	input_info(true, &ts->client->dev, "%s\n", __func__);
 
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-	if (TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()) {
-		input_err(true, &ts->client->dev, "%s TUI cancel event call!\n", __func__);
-		msleep(100);
-		tui_force_close(1);
-		msleep(200);
-		if (TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()) {
-			input_err(true, &ts->client->dev, "%s TUI flag force clear!\n",	__func__);
-			trustedui_clear_mask(TRUSTEDUI_MODE_VIDEO_SECURED|TRUSTEDUI_MODE_INPUT_SECURED);
-			trustedui_set_mode(TRUSTEDUI_MODE_OFF);
-		}
-	}
-#endif
-
 #ifdef CONFIG_SECURE_TOUCH
 	secure_touch_stop(ts, 0);
 #endif
@@ -3014,20 +2924,6 @@ static void sec_ts_input_close(struct input_dev *dev)
 #endif
 #ifdef MINORITY_REPORT
 	minority_report_sync_latest_value(ts);
-#endif
-
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-	if (TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()) {
-		input_err(true, &ts->client->dev, "%s TUI cancel event call!\n", __func__);
-		msleep(100);
-		tui_force_close(1);
-		msleep(200);
-		if (TRUSTEDUI_MODE_TUI_SESSION & trustedui_get_current_mode()) {
-			input_err(true, &ts->client->dev, "%s TUI flag force clear!\n",	__func__);
-			trustedui_clear_mask(TRUSTEDUI_MODE_VIDEO_SECURED|TRUSTEDUI_MODE_INPUT_SECURED);
-			trustedui_set_mode(TRUSTEDUI_MODE_OFF);
-		}
-	}
 #endif
 
 #ifdef CONFIG_SECURE_TOUCH
@@ -3104,10 +3000,6 @@ static int sec_ts_remove(struct i2c_client *client)
 	ts->input_dev_touch = NULL;
 	ts_dup = NULL;
 	ts->plat_data->power(ts, false);
-
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-	tsp_info = NULL;
-#endif
 
 	kfree(ts);
 	return 0;
@@ -3309,22 +3201,6 @@ static int sec_ts_pm_resume(struct device *dev)
 		complete_all(&ts->resume_done);
 
 	return 0;
-}
-#endif
-
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-void trustedui_mode_on(void)
-{
-	if (!tsp_info)
-		return;
-
-	sec_ts_unlocked_release_all_finger(tsp_info);
-}
-
-void trustedui_mode_off(void)
-{
-	if (!tsp_info)
-		return;
 }
 #endif
 

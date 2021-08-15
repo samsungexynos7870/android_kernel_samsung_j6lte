@@ -1617,14 +1617,6 @@ static int sec_ts_probe(struct i2c_client *client, const struct i2c_device_id *i
 		goto err_irq;
 	}
 
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-	tsp_info = ts;
-
-	trustedui_set_tsp_irq(client->irq);
-	input_info(true, &client->dev, "%s[%d] called!\n",
-			__func__, client->irq);
-#endif
-
 	/* need remove below resource @ remove driver */
 #if !defined(CONFIG_SAMSUNG_PRODUCT_SHIP)
 	sec_ts_raw_device_init(ts);
@@ -1691,9 +1683,6 @@ error_allocate_pdata:
 	p_ghost_check = NULL;
 #endif
 	ts_dup = NULL;
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-	tsp_info = NULL;
-#endif
 	input_err(true, &client->dev, "%s: failed(%d)\n", __func__, ret);
 	input_log_fix();
 	return ret;
@@ -1969,10 +1958,6 @@ static int sec_ts_remove(struct i2c_client *client)
 	ts->input_dev_touch = NULL;
 	ts_dup = NULL;
 
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-	tsp_info = NULL;
-#endif
-
 	kfree(ts);
 	return 0;
 }
@@ -2143,24 +2128,6 @@ static int sec_ts_pm_resume(struct device *dev)
 	}
 	return 0;
 }
-#endif
-
-#ifdef CONFIG_TRUSTONIC_TRUSTED_UI
-void trustedui_mode_on(void)
-{
-	if (!tsp_info)
-		return;
-
-	sec_ts_unlocked_release_all_finger(tsp_info);
-}
-EXPORT_SYMBOL(trustedui_mode_on);
-
-void trustedui_mode_off(void)
-{
-	if (!tsp_info)
-		return;
-}
-EXPORT_SYMBOL(trustedui_mode_off);
 #endif
 
 static const struct i2c_device_id sec_ts_id[] = {

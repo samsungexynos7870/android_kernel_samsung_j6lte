@@ -187,12 +187,6 @@ obj-$(CONFIG_RAS)		+= ras/
 obj-$(CONFIG_THUNDERBOLT)	+= thunderbolt/
 obj-$(CONFIG_EXYNOS_BTS)	+= bts/
 obj-$(CONFIG_MARVELL_DRIVERS)	+= marvell/
-# Mobicore driver
-obj-$(CONFIG_TRUSTONIC_TEE)	+= gud/
-
-# FIVE TEE driver
-obj-$(CONFIG_FIVE_TEE_DRIVER)	+= five/
-obj-$(CONFIG_ICD)		+= security/samsung/icdrv/
 
 #haptic driver
 obj-$(CONFIG_ANDROID_TIMED_OUTPUT)	+= motor/
