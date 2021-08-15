@@ -17,7 +17,6 @@
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/security.h>
-#include <linux/integrity.h>
 #include <linux/ima.h>
 #include <linux/evm.h>
 #include <linux/task_integrity.h>

@@ -8,7 +8,6 @@
 #ifndef _LINUX_EVM_H
 #define _LINUX_EVM_H
 
-#include <linux/integrity.h>
 #include <linux/xattr.h>
 
 struct integrity_iint_cache;
@@ -42,16 +41,6 @@ static inline int posix_xattr_acl(const char *xattrname)
 }
 #endif
 #else
-#ifdef CONFIG_INTEGRITY
-static inline enum integrity_status evm_verifyxattr(struct dentry *dentry,
-						    const char *xattr_name,
-						    void *xattr_value,
-						    size_t xattr_value_len,
-					struct integrity_iint_cache *iint)
-{
-	return INTEGRITY_UNKNOWN;
-}
-#endif
 
 static inline int evm_inode_setattr(struct dentry *dentry, struct iattr *attr)
 {
