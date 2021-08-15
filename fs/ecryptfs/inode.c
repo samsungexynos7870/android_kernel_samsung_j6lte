@@ -758,11 +758,6 @@ ecryptfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 					new_dentry->d_inode);
 #endif
 
-    if(IS_CHAMBER_DENTRY(old_dentry)) {
-        printk("Rename trial on chamber : failed\n");
-        return -EIO;
-    }
-
 #if 0 // kernel panic. new_crypt_stat->engine_id
     if(IS_SENSITIVE_DENTRY(old_dentry->d_parent) &&
             IS_SENSITIVE_DENTRY(new_dentry->d_parent)) {
@@ -772,29 +767,6 @@ ecryptfs_rename(struct inode *old_dir, struct dentry *old_dentry,
         }
     }
 #endif
-
-	if(IS_SENSITIVE_DENTRY(old_dentry->d_parent)) {
-	    if(ecryptfs_is_sdp_locked(parent_crypt_stat->engine_id)) {
-	        printk("Rename/move trial in locked state\n");
-	        return -EIO;
-	    }
-	}
-
-	if(IS_SENSITIVE_DENTRY(old_dentry->d_parent) &&
-			IS_SENSITIVE_DENTRY(new_dentry->d_parent)) {
-		if(parent_crypt_stat->engine_id != new_parent_crypt_stat->engine_id) {
-	        printk("Can't move between chambers\n");
-			return -EIO;
-		}
-	}
-
-	if(IS_SENSITIVE_DENTRY(old_dentry->d_parent) &&
-			!IS_SENSITIVE_DENTRY(new_dentry->d_parent))
-		rename_event |= ECRYPTFS_EVT_RENAME_OUT_OF_CHAMBER;
-
-	if(!IS_SENSITIVE_DENTRY(old_dentry->d_parent) &&
-			IS_SENSITIVE_DENTRY(new_dentry->d_parent))
-		rename_event |= ECRYPTFS_EVT_RENAME_TO_CHAMBER;
 
 	lower_old_dentry = ecryptfs_dentry_to_lower(old_dentry);
 	lower_new_dentry = ecryptfs_dentry_to_lower(new_dentry);
@@ -825,21 +797,6 @@ ecryptfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 	fsstack_copy_attr_all(new_dir, lower_new_dir_dentry->d_inode);
 	if (new_dir != old_dir)
 		fsstack_copy_attr_all(old_dir, lower_old_dir_dentry->d_inode);
-
-#if ECRYPTFS_SDP_RENAME_DEBUG
-		printk("[end of rename] old_dentry[%p] : %s [parent %s : %s] inode:%p\n",
-				old_dentry, old_dentry->d_name.name,
-				old_dentry->d_parent->d_name.name,
-				IS_SENSITIVE_DENTRY(old_dentry->d_parent) ? "sensitive" : "protected",
-						old_dentry->d_inode);
-		printk("[end of rename] new_dentry[%p] : %s [parent %s : %s] inode:%p\n",
-				new_dentry, new_dentry->d_name.name,
-				new_dentry->d_parent->d_name.name,
-				IS_SENSITIVE_DENTRY(new_dentry->d_parent) ? "sensitive" : "protected",
-						new_dentry->d_inode);
-#endif
-
-    }
 
 out_lock:
 	unlock_rename(lower_old_dir_dentry, lower_new_dir_dentry);
