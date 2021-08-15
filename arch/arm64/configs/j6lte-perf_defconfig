@@ -4624,11 +4624,6 @@ CONFIG_DEBUG_RODATA=y
 # CONFIG_DEBUG_ALIGN_RODATA is not set
 
 #
-# Samsung Rooting Restriction Feature
-#
-# CONFIG_SEC_RESTRICT_ROOTING is not set
-
-#
 # Security options
 #
 CONFIG_KEYS=y
