@@ -93,11 +93,6 @@
 #include <linux/sec_ext.h>
 #endif
 
-#ifdef CONFIG_SECURITY_DEFEX
-#include <linux/defex.h>
-void __init __weak defex_load_rules(void) { }
-#endif
-
 static int kernel_init(void *);
 
 extern void init_IRQ(void);
@@ -1103,7 +1098,4 @@ static noinline void __init kernel_init_freeable(void)
 
 	/* rootfs is available now, try loading default modules */
 	load_default_modules();
-#ifdef CONFIG_SECURITY_DEFEX
-	defex_load_rules();
-#endif
 }
