@@ -198,6 +198,8 @@ source "drivers/ccic/Kconfig"
 
 source "drivers/bts/Kconfig"
 
+source "drivers/gud/Kconfig"
+
 source "drivers/mailbox/samsung/Kconfig"
 
 source "drivers/marvell/Kconfig"
@@ -211,5 +213,9 @@ source "drivers/fingerprint/Kconfig"
 source "drivers/gps/Kconfig"
 
 source "drivers/sensorhub/Kconfig"
+
+source "drivers/five/Kconfig"
+
+source "drivers/security/samsung/icdrv/Kconfig"
 
 endmenu
