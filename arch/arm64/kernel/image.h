@@ -49,12 +49,7 @@
 
 #define __HEAD_FLAGS	(__HEAD_FLAG_BE << 0)
 
-#ifdef CONFIG_PROCA
-#define PROCA_CONF_OFFSET_IMAGE_LE64\
-	_proca_conf_offset = DATA_LE64(g_proca_config - _text);
-#else
 #define PROCA_CONF_OFFSET_IMAGE_LE64
-#endif
 
 /*
  * These will output as part of the Image header, which should be little-endian

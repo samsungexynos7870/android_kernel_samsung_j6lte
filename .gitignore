@@ -9,6 +9,8 @@
 #
 # Normal rules
 #
+arch/arm64/boot/dtb
+*.dtb
 .*
 *.o
 *.o.*

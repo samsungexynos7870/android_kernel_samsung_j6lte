@@ -615,7 +615,6 @@ endif # $(dot-config)
 all: vmlinux
 
 ifeq ($(cc-name),clang)
-KBUILD_CFLAGS += -mcpu=cortex-a53
 ifneq ($(CROSS_COMPILE),)
 CLANG_TRIPLE	?= $(CROSS_COMPILE)
 CLANG_FLAGS	+= --target=$(notdir $(CLANG_TRIPLE:%-=%))
@@ -854,16 +853,6 @@ KBUILD_ARFLAGS := $(call ar-option,D)
 
 
 include $(srctree)/scripts/Makefile.extrawarn
-
-#Disable the whole of the following block to disable LKM AUTH
-ifeq ($(CONFIG_TIMA_LKMAUTH),y)
-ifeq ($(CONFIG_TIMA),y)
-ifeq ($(CONFIG_TRUSTONIC_TEE),y)
-    KBUILD_CFLAGS += -DTIMA_LKM_AUTH_ENABLED -Idrivers/gud/gud-exynos7870/MobiCoreDriver/mci/
-    KBUILD_AFLAGS += -DTIMA_LKM_AUTH_ENABLED
-endif
-endif
-endif
 
 # Add any arch overrides and user supplied CPPFLAGS, AFLAGS and CFLAGS as the
 # last assignments
