@@ -13,7 +13,6 @@
 #include <linux/fsnotify.h>
 #include <linux/fcntl.h>
 #include <linux/security.h>
-#include <linux/evm.h>
 #include <linux/ima.h>
 #include <linux/task_integrity.h>
 

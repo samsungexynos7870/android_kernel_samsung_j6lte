@@ -18,7 +18,6 @@
 #include <linux/kernel.h>
 #include <linux/security.h>
 #include <linux/ima.h>
-#include <linux/evm.h>
 #include <linux/task_integrity.h>
 #include <linux/fsnotify.h>
 #include <linux/mman.h>
