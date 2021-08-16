@@ -8,7 +8,6 @@ subdir-$(CONFIG_SECURITY_SMACK)		+= smack
 subdir-$(CONFIG_SECURITY_TOMOYO)        += tomoyo
 subdir-$(CONFIG_SECURITY_APPARMOR)	+= apparmor
 subdir-$(CONFIG_SECURITY_YAMA)		+= yama
-subdir-$(CONFIG_SECURITY_DSMS)		+= samsung/dsms
 
 # always enable default capabilities
 obj-y					+= commoncap.o

@@ -20,6 +20,7 @@
 #include <linux/ima.h>
 #include <linux/task_integrity.h>
 #include <linux/fsnotify.h>
+#include <linux/evm.h>
 #include <linux/mman.h>
 #include <linux/mount.h>
 #include <linux/personality.h>
@@ -346,7 +347,6 @@ int security_inode_alloc(struct inode *inode)
 
 void security_inode_free(struct inode *inode)
 {
-	integrity_inode_free(inode);
 	security_ops->inode_free_security(inode);
 }
 
@@ -382,10 +382,6 @@ int security_inode_init_security(struct inode *inode, struct inode *dir,
 	if (ret)
 		goto out;
 
-	evm_xattr = lsm_xattr + 1;
-	ret = evm_inode_init_security(inode, lsm_xattr, evm_xattr);
-	if (ret)
-		goto out;
 	ret = initxattrs(inode, new_xattrs, fs_data);
 out:
 	for (xattr = new_xattrs; xattr->value != NULL; xattr++)

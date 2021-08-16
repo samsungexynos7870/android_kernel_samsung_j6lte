@@ -307,7 +307,6 @@ vfs_removexattr(struct dentry *dentry, const char *name)
 
 	if (!error) {
 		fsnotify_xattr(dentry);
-		evm_inode_post_removexattr(dentry, name);
 	}
 	return error;
 }
