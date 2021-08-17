@@ -21,12 +21,13 @@ export PLATFORM_VERSION=10
 blv="-ice "
 
 echo -e "select sublv: "
-sublvs="beta alpha stable custom ice+"
+sublvs="beta alpha stable custom ice+ lineage"
 selectsublv="1) beta
 2) alpha
 3) stable
 4) custom
-5) -ice+"
+5) -ice+
+6) lineage"
 
 select slv in $sublvs
 do
@@ -52,6 +53,10 @@ do
 		;;
 		-ice+)
 		export LOCALVERSION="-ice+"
+		break
+		;;
+		lineage)
+		export LOCALVERSION="-ice lineage"
 		break
 		;;
 	esac
