@@ -4,6 +4,15 @@
 #
 mainmenu "Linux/$ARCH $KERNELVERSION Kernel Configuration"
 
+config CUSTOM_VERSION
+	bool "Use custom kernel version"
+	default n
+	help
+	  This option replaces the kernel version found
+	  in Makefile with a custom, user chosen one.
+
+	  If unsure, say N.
+
 config SRCARCH
 	string
 	option env="SRCARCH"
