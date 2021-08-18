@@ -76,7 +76,7 @@ make exynos7870-j6lte_cis_ser_00.dtb
 make exynos7870-j6lte_cis_ser_02.dtb
 ./tools/dtbtool arch/arm64/boot/dts/ -o arch/arm64/boot/dtb
 PATH="/home/fra/proton-clang/bin:/home/fra/gcc/bin:${PATH}" \
-make CC=clang -j69
+make CC=clang -j69 CONFIG_DEBUG_SECTION_MISMATCH=y
 rm -rf arch/arm64/boot/dts/*.dtb
 
 if [[ ! -d "AnyKernel3" ]]; then
