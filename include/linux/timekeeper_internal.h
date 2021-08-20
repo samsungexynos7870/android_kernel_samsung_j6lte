@@ -35,7 +35,7 @@ struct tk_read_base {
 	u32			mult;
 	u32			shift;
 	u64			xtime_nsec;
-	ktime_t			base;
+	ktime_t			base_mono;
 };
 
 /**
@@ -76,21 +76,21 @@ struct tk_read_base {
  */
 struct timekeeper {
 	struct tk_read_base	tkr;
-	struct tk_read_base	tkr_mono;
-	struct tk_read_base	tkr_raw;
 	u64			xtime_sec;
+	unsigned long		ktime_sec;
 	struct timespec64	wall_to_monotonic;
 	ktime_t			offs_real;
 	ktime_t			offs_boot;
 	ktime_t			offs_tai;
 	s32			tai_offset;
-	u64			raw_sec;
+	ktime_t			base_raw;
+	struct timespec64	raw_time;
 
 	/* The following members are for timekeeping internal use */
 	cycle_t			cycle_interval;
 	u64			xtime_interval;
 	s64			xtime_remainder;
-	u64			raw_interval;
+	u32			raw_interval;
 	/* The ntp_tick_length() value currently being used.
 	 * This cached copy ensures we consistently apply the tick
 	 * length for an entire tick, as ntp_tick_length may change
