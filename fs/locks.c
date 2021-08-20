@@ -203,6 +203,52 @@ static DEFINE_HASHTABLE(blocked_hash, BLOCKED_HASH_BITS);
 static DEFINE_SPINLOCK(blocked_lock_lock);
 
 static struct kmem_cache *filelock_cache __read_mostly;
+static struct kmem_cache *flctx_cache __read_mostly;
+
+static struct file_lock_context *
+locks_get_lock_context(struct inode *inode)
+{
+	struct file_lock_context *new;
+
+	if (likely(inode->i_flctx))
+		goto out;
+
+	new = kmem_cache_alloc(flctx_cache, GFP_KERNEL);
+	if (!new)
+		goto out;
+
+	spin_lock_init(&new->flc_lock);
+	INIT_LIST_HEAD(&new->flc_flock);
+	INIT_LIST_HEAD(&new->flc_posix);
+	INIT_LIST_HEAD(&new->flc_lease);
+
+	/*
+	 * Assign the pointer if it's not already assigned. If it is, then
+	 * free the context we just allocated.
+	 */
+	spin_lock(&inode->i_lock);
+	if (likely(!inode->i_flctx)) {
+		inode->i_flctx = new;
+		new = NULL;
+	}
+	spin_unlock(&inode->i_lock);
+
+	if (new)
+		kmem_cache_free(flctx_cache, new);
+out:
+	return inode->i_flctx;
+}
+
+void
+locks_free_lock_context(struct file_lock_context *ctx)
+{
+	if (ctx) {
+		WARN_ON_ONCE(!list_empty(&ctx->flc_flock));
+		WARN_ON_ONCE(!list_empty(&ctx->flc_posix));
+		WARN_ON_ONCE(!list_empty(&ctx->flc_lease));
+		kmem_cache_free(flctx_cache, ctx);
+	}
+}
 
 static void locks_init_lock_heads(struct file_lock *fl)
 {
@@ -633,6 +679,36 @@ static void locks_wake_up_blocks(struct file_lock *blocker)
 			wake_up(&waiter->fl_wait);
 	}
 	spin_unlock(&blocked_lock_lock);
+}
+
+static void
+locks_insert_lock_ctx(struct file_lock *fl, struct list_head *before)
+{
+	fl->fl_nspid = get_pid(task_tgid(current));
+	list_add_tail(&fl->fl_list, before);
+	locks_insert_global_locks(fl);
+}
+
+static void
+locks_unlink_lock_ctx(struct file_lock *fl)
+{
+	locks_delete_global_locks(fl);
+	list_del_init(&fl->fl_list);
+	if (fl->fl_nspid) {
+		put_pid(fl->fl_nspid);
+		fl->fl_nspid = NULL;
+	}
+	locks_wake_up_blocks(fl);
+}
+
+static void
+locks_delete_lock_ctx(struct file_lock *fl, struct list_head *dispose)
+{
+	locks_unlink_lock_ctx(fl);
+	if (dispose)
+		list_add(&fl->fl_list, dispose);
+	else
+		locks_free_lock(fl);
 }
 
 /* Insert file lock fl into an inode's lock list at the position indicated
@@ -1560,10 +1636,13 @@ int fcntl_getlease(struct file *filp)
  * conflict with the lease we're trying to set.
  */
 static int
-check_conflicting_open(const struct dentry *dentry, const long arg)
+check_conflicting_open(const struct dentry *dentry, const long arg, int flags)
 {
 	int ret = 0;
 	struct inode *inode = dentry->d_inode;
+
+	if (flags & FL_LAYOUT)
+		return 0;
 
 	if ((arg == F_RDLCK) && (atomic_read(&inode->i_writecount) > 0))
 		return -EAGAIN;
@@ -1578,15 +1657,20 @@ check_conflicting_open(const struct dentry *dentry, const long arg)
 static int
 generic_add_lease(struct file *filp, long arg, struct file_lock **flp, void **priv)
 {
-	struct file_lock *fl, **before, **my_before = NULL, *lease;
+	struct file_lock *fl, *my_fl = NULL, *lease;
 	struct dentry *dentry = filp->f_path.dentry;
-	struct inode *inode = file_inode(filp);
+	struct inode *inode = dentry->d_inode;
+	struct file_lock_context *ctx;
 	bool is_deleg = (*flp)->fl_flags & FL_DELEG;
 	int error;
 	LIST_HEAD(dispose);
 
 	lease = *flp;
 	trace_generic_add_lease(inode, lease);
+
+	ctx = locks_get_lock_context(inode);
+	if (!ctx)
+		return -ENOMEM;
 
 	/*
 	 * In the delegation case we need mutual exclusion with
@@ -1606,9 +1690,9 @@ generic_add_lease(struct file *filp, long arg, struct file_lock **flp, void **pr
 		return -EINVAL;
 	}
 
-	spin_lock(&inode->i_lock);
+	spin_lock(&ctx->flc_lock);
 	time_out_leases(inode, &dispose);
-	error = check_conflicting_open(dentry, arg);
+	error = check_conflicting_open(dentry, arg, lease->fl_flags);
 	if (error)
 		goto out;
 
@@ -1621,13 +1705,13 @@ generic_add_lease(struct file *filp, long arg, struct file_lock **flp, void **pr
 	 * except for this filp.
 	 */
 	error = -EAGAIN;
-	for (before = &inode->i_flock;
-			((fl = *before) != NULL) && IS_LEASE(fl);
-			before = &fl->fl_next) {
-		if (fl->fl_file == filp) {
-			my_before = before;
+	list_for_each_entry(fl, &ctx->flc_lease, fl_list) {
+		if (fl->fl_file == filp &&
+		    fl->fl_owner == lease->fl_owner) {
+			my_fl = fl;
 			continue;
 		}
+
 		/*
 		 * No exclusive leases if someone else has a lease on
 		 * this file:
@@ -1654,7 +1738,7 @@ generic_add_lease(struct file *filp, long arg, struct file_lock **flp, void **pr
 	if (!leases_enable)
 		goto out;
 
-	locks_insert_lock(before, lease);
+	locks_insert_lock_ctx(lease, &ctx->flc_lease);
 	/*
 	 * The check in break_lease() is lockless. It's possible for another
 	 * open to race in after we did the earlier check for a conflicting
@@ -1665,24 +1749,23 @@ generic_add_lease(struct file *filp, long arg, struct file_lock **flp, void **pr
 	 * precedes these checks.
 	 */
 	smp_mb();
-	error = check_conflicting_open(dentry, arg);
-	if (error)
-		goto out_unlink;
+	error = check_conflicting_open(dentry, arg, lease->fl_flags);
+	if (error) {
+		locks_unlink_lock_ctx(lease);
+		goto out;
+	}
 
 out_setup:
 	if (lease->fl_lmops->lm_setup)
 		lease->fl_lmops->lm_setup(lease, priv);
 out:
-	spin_unlock(&inode->i_lock);
+	spin_unlock(&ctx->flc_lock);
 	locks_dispose_list(&dispose);
 	if (is_deleg)
 		mutex_unlock(&inode->i_mutex);
-	if (!error && !my_before)
+	if (!error && !my_fl)
 		*flp = NULL;
 	return error;
-out_unlink:
-	locks_unlink_lock(before);
-	goto out;
 }
 
 static int generic_delete_lease(struct file *filp)

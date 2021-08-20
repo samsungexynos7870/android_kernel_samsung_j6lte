@@ -552,7 +552,7 @@ void xhci_dbg_ctx(struct xhci_hcd *xhci,
 
 	if (ctx->type == XHCI_CTX_TYPE_INPUT) {
 		struct xhci_input_control_ctx *ctrl_ctx =
-			xhci_get_input_control_ctx(xhci, ctx);
+			xhci_get_input_control_ctx(ctx);
 		if (!ctrl_ctx) {
 			xhci_warn(xhci, "Could not get input context, bad type.\n");
 			return;
@@ -580,6 +580,7 @@ void xhci_dbg_ctx(struct xhci_hcd *xhci,
 	xhci_dbg_slot_ctx(xhci, ctx);
 	xhci_dbg_ep_ctx(xhci, ctx, last_ep);
 }
+
 
 void xhci_dbg_trace(struct xhci_hcd *xhci, void (*trace)(struct va_format *),
 			const char *fmt, ...)

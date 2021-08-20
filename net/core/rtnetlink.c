@@ -2003,7 +2003,7 @@ replay:
 		struct nlattr *slave_attr[m_ops ? m_ops->slave_maxtype + 1 : 1];
 		struct nlattr **data = NULL;
 		struct nlattr **slave_data = NULL;
-		struct net *dest_net;
+		struct net *dest_net, *link_net = NULL;
 
 		if (ops) {
 			if (ops->maxtype && linkinfo[IFLA_INFO_DATA]) {
@@ -2136,7 +2136,7 @@ replay:
 		dev->ifindex = ifm->ifi_index;
 
 		if (ops->newlink) {
-			err = ops->newlink(net, dev, tb, data);
+			err = ops->newlink(link_net ? : net, dev, tb, data);
 			/* Drivers should call free_netdev() in ->destructor
 			 * and unregister it on failure after registration
 			 * so that device could be finally freed in rtnl_unlock.
@@ -2164,8 +2164,17 @@ replay:
 			} else {
 				unregister_netdevice(dev);
 			}
+			goto out;
+		}
+
+		if (link_net) {
+			err = dev_change_net_namespace(dev, dest_net, ifname);
+			if (err < 0)
+				unregister_netdevice(dev);
 		}
 out:
+		if (link_net)
+			put_net(link_net);
 		put_net(dest_net);
 		return err;
 	}

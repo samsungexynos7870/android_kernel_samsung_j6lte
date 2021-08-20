@@ -75,6 +75,7 @@ struct tk_read_base {
  * used instead.
  */
 struct timekeeper {
+	struct tk_read_base	tkr;
 	struct tk_read_base	tkr_mono;
 	struct tk_read_base	tkr_raw;
 	u64			xtime_sec;

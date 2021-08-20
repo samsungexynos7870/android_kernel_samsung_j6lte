@@ -1892,6 +1892,9 @@ struct napi_gro_cb {
 	/* Number of segments aggregated. */
 	u16	count;
 
+	/* Start offset for remote checksum offload */
+	u16	gro_remcsum_start;
+
 	/* jiffies when first packet was created/queued */
 	unsigned long age;
 
