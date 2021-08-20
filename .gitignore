@@ -9,6 +9,7 @@
 #
 # Normal rules
 #
+AIK-Linux/
 *.zip
 arch/arm64/boot/dtb
 *.dtb

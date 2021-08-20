@@ -89,6 +89,8 @@ rm ./AnyKernel3/Image ./AnyKernel3/dtb ./AnyKernel3/*.zip
 
 cp ./arch/arm64/boot/Image ./AnyKernel3/
 cp ./arch/arm64/boot/dtb ./AnyKernel3/
+cp ./arch/arm64/boot/Image ./AIK-Linux/split_img/
+cp ./arch/arm64/boot/dtb ./AIK-Linux/split_img/
 
 cd ./AnyKernel3
 if [[ -f Image ]]; then
@@ -105,3 +107,15 @@ if [[ -f Image ]]; then
 	cp *.zip ../
 fi
 
+cd ../AIK-Linux/split_img
+rm ../image-new.img
+
+if [[ -f boot.img-kernel ]]; then
+	rm boot.img-kernel boot.img-dt
+fi
+
+mv Image boot.img-kernel
+mv dtb boot.img-dt
+
+cd ..
+mv image-new.img "$zipname.img"
