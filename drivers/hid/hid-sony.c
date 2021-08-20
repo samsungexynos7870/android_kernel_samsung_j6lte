@@ -1894,40 +1894,7 @@ static int sony_input_configured(struct hid_device *hdev,
 	struct sony_sc *sc = hid_get_drvdata(hdev);
 	int append_dev_id;
 	int ret;
-	unsigned long quirks = id->driver_data;
-	struct sony_sc *sc;
-	unsigned int connect_mask = HID_CONNECT_DEFAULT;
-
-	sc = devm_kzalloc(&hdev->dev, sizeof(*sc), GFP_KERNEL);
-	if (sc == NULL) {
-		hid_err(hdev, "can't alloc sony descriptor\n");
-		return -ENOMEM;
-	}
-
-	spin_lock_init(&sc->lock);
-
-	sc->quirks = quirks;
-	hid_set_drvdata(hdev, sc);
-	sc->hdev = hdev;
-
-	ret = hid_parse(hdev);
-	if (ret) {
-		hid_err(hdev, "parse failed\n");
-		return ret;
-	}
-
-	if (sc->quirks & VAIO_RDESC_CONSTANT)
-		connect_mask |= HID_CONNECT_HIDDEV_FORCE;
-	else if (sc->quirks & SIXAXIS_CONTROLLER)
-		connect_mask |= HID_CONNECT_HIDDEV_FORCE;
-
-	ret = hid_hw_start(hdev, connect_mask);
-	if (ret) {
-		hid_err(hdev, "hw start failed\n");
-		return ret;
-	}
-
-	ret = sony_allocate_output_report(sc);
+	ret = sony_set_device_id(sc);
 	if (ret < 0) {
 		hid_err(hdev, "failed to allocate the device id\n");
 		goto err_stop;
