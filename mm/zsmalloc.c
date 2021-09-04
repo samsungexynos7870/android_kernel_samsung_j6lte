@@ -374,43 +374,11 @@ static void zs_zpool_free(void *pool, unsigned long handle)
 	zs_free(pool, handle);
 }
 
-#ifdef CONFIG_ZSMALLOC_OBJ_SEQ
 static int zs_zpool_shrink(void *pool, unsigned int pages,
 			unsigned int *reclaimed)
 {
-	int total = 0, ret = 0;
-
-	while (pages--) {
-		ret = zs_shrink(pool);
-		if (ret < 0)
-			ret = 0;
-		total += ret;
-	}
-
-	if (reclaimed)
-		*reclaimed = total;
-	return total ? 0 : -ENOENT;
+	return -EINVAL;
 }
-#else
-static int zs_zpool_shrink(void *pool, unsigned int pages,
-			unsigned int *reclaimed)
-{
-	int total = 0, ret = 0;
-
-	while (total < pages) {
-		ret = zs_shrink(pool);
-		WARN_ON(!ret);
-		if (ret <= 0)
-			break;
-		total += ret;
-		ret = 0;
-	}
-
-	if (reclaimed)
-		*reclaimed = total;
-	return ret;
-}
-#endif
 
 static void *zs_zpool_map(void *pool, unsigned long handle,
 			enum zpool_mapmode mm)
@@ -1531,15 +1499,21 @@ static unsigned long obj_malloc(struct page *first_page,
  * otherwise 0.
  * Allocation requests with size > ZS_MAX_ALLOC_SIZE will fail.
  */
+/**
+ * zs_malloc - Allocate block of given size from pool.
+ * @pool: pool to allocate from
+ * @size: size of block to allocate
+ *
+ * On success, handle to the allocated object is returned,
+ * otherwise 0.
+ * Allocation requests with size > ZS_MAX_ALLOC_SIZE will fail.
+ */
 unsigned long zs_malloc(struct zs_pool *pool, size_t size, gfp_t gfp)
 {
 	unsigned long handle, obj;
 	struct size_class *class;
 	struct page *first_page;
 
-#ifdef CONFIG_ZSMALLOC_OBJ_SEQ
-	size += ZS_OBJ_SEQ_SIZE;
-#endif
 	if (unlikely(!size || size > ZS_MAX_ALLOC_SIZE))
 		return 0;
 
@@ -1571,8 +1545,7 @@ unsigned long zs_malloc(struct zs_pool *pool, size_t size, gfp_t gfp)
 				class->size, class->pages_per_zspage));
 	}
 
-	obj = obj_malloc(first_page, class, handle);
-	obj_seq_operation(pool, class, obj, OBJ_SEQ_SET);
+	obj = obj_malloc(class, first_page, handle);
 	/* Now move the zspage to another fullness group, if required */
 	fix_fullness_group(class, first_page);
 	record_obj(handle, obj);
@@ -1582,15 +1555,12 @@ unsigned long zs_malloc(struct zs_pool *pool, size_t size, gfp_t gfp)
 }
 EXPORT_SYMBOL_GPL(zs_malloc);
 
-static void obj_free(struct zs_pool *pool, struct size_class *class,
-			unsigned long obj)
+static void obj_free(struct size_class *class, unsigned long obj)
 {
 	struct link_free *link;
 	struct page *first_page, *f_page;
 	unsigned long f_objidx, f_offset;
 	void *vaddr;
-
-	BUG_ON(!obj);
 
 	obj &= ~OBJ_ALLOCATED_TAG;
 	obj_to_location(obj, &f_page, &f_objidx);
@@ -1631,18 +1601,7 @@ void zs_free(struct zs_pool *pool, unsigned long handle)
 	class = pool->size_class[class_idx];
 
 	spin_lock(&class->lock);
-
-	/* must re-check fullness after taking class lock */
-	get_zspage_mapping(first_page, &class_idx, &fullness);
-	if (fullness == ZS_RECLAIM) {
-		spin_unlock(&class->lock);
-		obj_mark_to_free(pool, class, obj);
-		unpin_tag(handle);
-		return; /* will be freed during reclaim */
-	}
-
-	obj_seq_operation(pool, class, obj, OBJ_SEQ_CLEAR);
-	obj_free(pool, class, obj);
+	obj_free(class, obj);
 	fullness = fix_fullness_group(class, first_page);
 	if (fullness == ZS_EMPTY) {
 		zs_stat_dec(class, OBJ_ALLOCATED, get_maxobj_per_zspage(
@@ -1778,7 +1737,7 @@ static int migrate_zspage(struct zs_pool *pool, struct size_class *class,
 	int ret = 0;
 
 	while (1) {
-		handle = find_alloced_obj(s_page, index, class);
+		handle = find_alloced_obj(class, s_page, index);
 		if (!handle) {
 			s_page = get_next_page(s_page);
 			if (!s_page)
@@ -1795,8 +1754,8 @@ static int migrate_zspage(struct zs_pool *pool, struct size_class *class,
 		}
 
 		used_obj = handle_to_obj(handle);
-		free_obj = obj_malloc(d_page, class, handle);
-		zs_object_copy(free_obj, used_obj, class);
+		free_obj = obj_malloc(class, d_page, handle);
+		zs_object_copy(class, free_obj, used_obj);
 		index++;
 		/*
 		 * record_obj updates handle's value to free_obj and it will
@@ -1807,7 +1766,7 @@ static int migrate_zspage(struct zs_pool *pool, struct size_class *class,
 		free_obj |= BIT(HANDLE_PIN_BIT);
 		record_obj(handle, free_obj);
 		unpin_tag(handle);
-		obj_free(pool, class, used_obj);
+		obj_free(class, used_obj);
 	}
 
 	/* Remember last position in this iteration */
