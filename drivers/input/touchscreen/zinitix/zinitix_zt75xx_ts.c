@@ -2541,7 +2541,6 @@ static irqreturn_t bt532_touch_work(int irq, void *data)
 		if(reported == true) /* for button event */
 			usleep_range(100, 100);
 		goto out;
-#endif
 	}
 
 #ifdef GLOVE_MODE

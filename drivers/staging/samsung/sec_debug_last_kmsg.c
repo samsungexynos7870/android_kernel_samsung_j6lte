@@ -11,6 +11,8 @@
  *
  */
 
+#ifdef CONFIG_SEC_DEBUG_LAST_KMSG
+
 #include <linux/kernel.h>
 #include <linux/uaccess.h>
 #include <linux/slab.h>
@@ -104,3 +106,5 @@ static int __init sec_last_kmsg_late_init(void)
 }
 
 late_initcall(sec_last_kmsg_late_init);
+
+#endif

@@ -1127,7 +1127,9 @@ static inline void exynos_ss_hook_logbuf(const char buf)
 #ifdef CONFIG_SEC_PM_DEBUG
 			sec_log_full = true;
 #endif
+#ifdef CONFIG_SEC_DEBUG
 			*((unsigned long long *)(item->head_ptr + item->entry.size - (size_t)0x08)) = SEC_LKMSG_MAGICKEY;
+#endif
 		}
 
 		item->curr_ptr[0] = buf;
@@ -1152,7 +1154,9 @@ static inline void exynos_ss_hook_logbuf(const char *buf, size_t size)
 #ifdef CONFIG_SEC_PM_DEBUG
 			sec_log_full = true;
 #endif
+#ifdef CONFIG_SEC_DEBUG
 			*((unsigned long long *)(item->head_ptr + item->entry.size - (size_t)0x08)) = SEC_LKMSG_MAGICKEY;
+#endif
 		}
 
 		memcpy(item->curr_ptr, buf, size);
@@ -3507,6 +3511,7 @@ static int __init sec_log_late_init(void)
 	if (!item->head_ptr)
 		return 0;
 
+#ifdef CONFIG_SEC_DEBUG
 	entry = proc_create("sec_log", S_IRUSR | S_IRGRP, NULL, &sec_log_file_ops);
 	if (!entry) {
 		pr_err("%s: failed to create proc entry\n", __func__);
@@ -3514,6 +3519,7 @@ static int __init sec_log_late_init(void)
 	}
 
 	proc_set_size(entry, item->entry.size);
+#endif
 
 	return 0;
 }

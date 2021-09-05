@@ -76,7 +76,7 @@ make exynos7870-j6lte_cis_ser_00.dtb
 make exynos7870-j6lte_cis_ser_02.dtb
 ./tools/dtbtool arch/arm64/boot/dts/ -o arch/arm64/boot/dtb
 PATH="/home/fra/proton-clang/bin:/home/fra/gcc/bin:${PATH}" \
-make CC=clang -j69 CONFIG_DEBUG_SECTION_MISMATCH=y
+time make CC=clang -j69
 rm -rf arch/arm64/boot/dts/*.dtb
 
 if [[ ! -d "AnyKernel3" ]]; then
@@ -89,8 +89,6 @@ rm ./AnyKernel3/Image ./AnyKernel3/dtb ./AnyKernel3/*.zip
 
 cp ./arch/arm64/boot/Image ./AnyKernel3/
 cp ./arch/arm64/boot/dtb ./AnyKernel3/
-cp ./arch/arm64/boot/Image ./AIK-Linux/split_img/
-cp ./arch/arm64/boot/dtb ./AIK-Linux/split_img/
 
 cd ./AnyKernel3
 if [[ -f Image ]]; then
@@ -106,16 +104,3 @@ if [[ -f Image ]]; then
 	echo $zipname
 	cp *.zip ../
 fi
-
-cd ../AIK-Linux/split_img
-rm ../image-new.img
-
-if [[ -f boot.img-kernel ]]; then
-	rm boot.img-kernel boot.img-dt
-fi
-
-mv Image boot.img-kernel
-mv dtb boot.img-dt
-
-cd ..
-mv image-new.img "$zipname.img"

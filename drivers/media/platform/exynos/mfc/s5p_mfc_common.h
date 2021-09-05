@@ -21,7 +21,7 @@
 #include <linux/videodev2_exynos_media.h>
 
 #include "exynos-mfc.h"
-#include "exynos_mfc_media.h"
+#include <uapi/linux/exynos_mfc_media.h>
 
 #if defined(CONFIG_EXYNOS_MFC_V10)
 #include "regs-mfc-v10.h"

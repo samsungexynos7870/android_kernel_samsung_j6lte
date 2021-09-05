@@ -317,12 +317,14 @@ static int hall_probe(struct platform_device *pdev)
 
 	init_hall_ic_irq(input);
 
+#ifdef CONFIG_SEC_DEBUG
 	error = sysfs_create_group(&sec_key->kobj, &hall_attr_group);
 	if (error) {
 		dev_err(dev, "Unable to export keys/switches, error: %d\n",
 			error);
 		goto fail2;
 	}
+#endif
 
 	error = input_register_device(input);
 	if (error) {

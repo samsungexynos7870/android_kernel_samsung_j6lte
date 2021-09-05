@@ -1011,8 +1011,10 @@ static int parse_options(struct super_block *sb, char *options)
 		utf16s_to_utf8s(sbi->raw_super->volume_name, MAX_VOLUME_NAME,
 					UTF16_LITTLE_ENDIAN, volume_name, MAX_VOLUME_NAME);
 		if (!strcmp(volume_name, "data")) {
+#ifdef CONFIG_SEC_DEBUG
 			keypress_callback_sb = sb;
 			keypress_callback_fn = f2fs_keypress_callback_fn;
+#endif
 		}
 	}
 
