@@ -529,7 +529,7 @@ ifeq ($(KBUILD_EXTMOD),)
 endif
 
 # Needed to unbreak GCC 7.x and above
-KBUILD_CFLAGS   += $(call cc-option,-fno-store-merging,)
+# KBUILD_CFLAGS   += $(call cc-option,-fno-store-merging,)
 
 ifeq ($(mixed-targets),1)
 # ===========================================================================
@@ -736,6 +736,9 @@ else
 endif
 endif
 KBUILD_CFLAGS += $(stackp-flag)
+
+KBUILD_CFLAGS-$(CONFIG_WERROR) += -Werror
+KBUILD_CFLAGS += $(KBUILD_CFLAGS-y)
 
 ifeq ($(cc-name),clang)
 KBUILD_CPPFLAGS += -Qunused-arguments
