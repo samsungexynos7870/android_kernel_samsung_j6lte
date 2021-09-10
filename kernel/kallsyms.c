@@ -328,6 +328,7 @@ static inline void cleanup_symbol_name(char *s)
 	if (res && !strcmp(res, ".cfi"))
 		*res = '\0';
 }
+#endif
 
 /*
  * Lookup an address
