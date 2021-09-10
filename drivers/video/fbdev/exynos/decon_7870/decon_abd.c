@@ -92,6 +92,7 @@ void decon_abd_save_str(struct abd_protect *abd, const char *print)
 
 static void _decon_abd_print_bit(struct seq_file *m, struct abd_log *log)
 {
+#ifdef CONFIG_DECON_EVENT_LOG
 	struct timeval tv;
 	unsigned int bit = 0;
 	char print_buf[200] = {0, };
@@ -114,10 +115,12 @@ static void _decon_abd_print_bit(struct seq_file *m, struct abd_log *log)
 	}
 
 	abd_printf(m, "%s\n", p.count ? p.buf : "");
+#endif
 }
 
 void decon_abd_save_bit(struct abd_protect *abd, unsigned int size, unsigned int value, char **print)
 {
+#ifdef CONFIG_DECON_EVENT_LOG
 	struct abd_trace *first = &abd->b_first;
 	struct abd_trace *event = &abd->b_event;
 
@@ -139,6 +142,7 @@ void decon_abd_save_bit(struct abd_protect *abd, unsigned int size, unsigned int
 	_decon_abd_print_bit(NULL, event_log);
 
 	event->count++;
+#endif
 }
 
 void decon_abd_save_fto(struct abd_protect *abd, struct sync_fence *fence)
@@ -432,6 +436,7 @@ static void decon_abd_print_fto(struct seq_file *m, struct abd_trace *trace)
 
 static void decon_abd_print_ss_log(struct seq_file *m)
 {
+#ifdef CONFIG_DECON_EVENT_LOG
 	unsigned int log_max = 200, i, idx;
 	struct timeval tv;
 	struct decon_device *decon = m ? m->private : get_decon_drvdata(0);
@@ -453,10 +458,12 @@ static void decon_abd_print_ss_log(struct seq_file *m)
 	}
 
 	abd_printf(m, "\n");
+#endif
 }
 
 static void decon_abd_print_str(struct seq_file *m)
 {
+#ifdef CONFIG_DECON_EVENT_LOG
 	unsigned int log_max = ABD_EVENT_LOG_MAX, i, idx;
 	struct timeval tv;
 	struct decon_device *decon = m ? m->private : get_decon_drvdata(0);
@@ -491,10 +498,12 @@ static void decon_abd_print_str(struct seq_file *m)
 	}
 
 	abd_printf(m, "%s\n", p.count ? p.buf : "");
+#endif
 }
 
 static void decon_abd_print_bit(struct seq_file *m, struct abd_trace *trace)
 {
+#ifdef CONFIG_DECON_EVENT_LOG
 	struct abd_log *log;
 	unsigned int i = 0;
 
@@ -508,10 +517,12 @@ static void decon_abd_print_bit(struct seq_file *m, struct abd_trace *trace)
 			continue;
 		_decon_abd_print_bit(m, log);
 	}
+#endif
 }
 
 static int decon_abd_show(struct seq_file *m, void *unused)
 {
+#ifdef CONFIG_DECON_EVENT_LOG
 	struct decon_device *decon = m ? m->private : get_decon_drvdata(0);
 	struct abd_protect *abd = &decon->abd;
 	struct dsim_device *dsim = container_of(decon->output_sd, struct dsim_device, sd);
@@ -546,25 +557,30 @@ static int decon_abd_show(struct seq_file *m, void *unused)
 
 	abd_printf(m, "==========_RAM_DEBUG_==========\n");
 	decon_abd_print_ss_log(m);
-
+#endif
 	return 0;
 }
 
 static int decon_abd_open(struct inode *inode, struct file *file)
 {
+#ifdef CONFIG_DECON_EVENT_LOG
 	return single_open(file, decon_abd_show, inode->i_private);
+#endif
 }
 
 static const struct file_operations decon_abd_fops = {
 	.read = seq_read,
 	.llseek = seq_lseek,
 	.release = seq_release,
+#ifdef CONFIG_DECON_EVENT_LOG
 	.open = decon_abd_open,
+#endif
 };
 
 static int decon_abd_reboot_notifier(struct notifier_block *this,
 		unsigned long code, void *unused)
 {
+#ifdef CONFIG_DECON_EVENT_LOG
 	struct abd_protect *abd = container_of(this, struct abd_protect, reboot_notifier);
 	struct decon_device *decon = container_of(abd, struct decon_device, abd);
 	struct dsim_device *dsim = container_of(decon->output_sd, struct dsim_device, sd);
@@ -605,6 +621,7 @@ static int decon_abd_reboot_notifier(struct notifier_block *this,
 	decon_info("-- %s: %lu\n",  __func__, code);
 
 	return NOTIFY_DONE;
+#endif
 }
 
 static int decon_abd_pin_register_function(struct decon_device *decon, struct abd_pin *pin, char *keyword,

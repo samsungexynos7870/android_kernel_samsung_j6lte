@@ -2455,7 +2455,9 @@ static int decon_prevent_size_mismatch
 			info.h_in = decon_line;
 			info.w_out = dsim_hoz;
 			info.h_out = dsim_line;
+#ifdef CONFIG_DECON_EVENT_LOG
 			DISP_SS_EVENT_SIZE_ERR_LOG(&decon->sd, &info);
+#endif
 			need_save = false;
 		}
 
@@ -2479,10 +2481,12 @@ void decon_wait_for_vstatus(struct decon_device *decon, u32 timeout)
 	ret = wait_event_interruptible_timeout(decon->wait_vstatus,
 			(decon->frame_start_cnt_target <= decon->frame_start_cnt_cur),
 			msecs_to_jiffies(timeout));
+#ifdef CONFIG_DECON_EVENT_LOG
 	if (!ret) {
 		decon_warn("%s:timeout\n", __func__);
 		DISP_SS_DUMP(DISP_DUMP_VSTATUS_TIMEOUT);
 	}
+#endif
 }
 
 static void decon_update_regs(struct decon_device *decon, struct decon_reg_data *regs)
@@ -2521,7 +2525,9 @@ static void decon_update_regs(struct decon_device *decon, struct decon_reg_data 
 	if (decon->prev_bw != regs->bandwidth)
 		decon_set_qos(decon, regs, false, false);
 
+#ifdef CONFIG_DECON_EVENT_LOG
 	DISP_SS_EVENT_LOG_WINCON(&decon->sd, regs);
+#endif
 
 #ifdef CONFIG_USE_VSYNC_SKIP
 	vsync_wait_cnt = decon_extra_vsync_wait_get();
@@ -2543,11 +2549,13 @@ static void decon_update_regs(struct decon_device *decon, struct decon_reg_data 
 
 	decon->frame_start_cnt_target = decon->frame_start_cnt_cur + 1;
 	decon_wait_for_vsync(decon, VSYNC_TIMEOUT_MSEC);
+#ifdef CONFIG_DECON_EVENT_LOG
 	DISP_SS_EVENT_LOG(DISP_EVT_VSYNC_TIMEOUT, &decon->sd, ktime_set(0, 0));
-
+#endif
 	decon_wait_for_vstatus(decon, 50);
+#ifdef CONFIG_DECON_EVENT_LOG
 	DISP_SS_EVENT_LOG(DISP_EVT_VSTATUS_TIMEOUT, &decon->sd, ktime_set(0, 0));
-
+#endif
 	if (decon_reg_wait_for_update_timeout(DECON_INT, 300 * 1000) < 0) {
 		decon_dump(decon);
 #ifdef CONFIG_LOGGING_BIGDATA_BUG
@@ -2557,8 +2565,9 @@ static void decon_update_regs(struct decon_device *decon, struct decon_reg_data 
 	}
 	decon_set_protected_content_check(decon, regs, true);
 
+#ifdef CONFIG_DECON_EVENT_LOG
 	DISP_SS_EVENT_LOG(DISP_EVT_UPDATE_TIMEOUT, &decon->sd, ktime_set(0, 0));
-
+#endif
 	/* prevent size mis-matching after decon update clear */
 	decon_prevent_size_mismatch(decon, 0, 50 * 1000); /* 50ms */
 
@@ -2576,8 +2585,9 @@ static void decon_update_regs(struct decon_device *decon, struct decon_reg_data 
 	if (decon->pdata->trig_mode == DECON_HW_TRIG)
 		decon_reg_set_trigger(DECON_INT, decon->pdata->dsi_mode,
 				decon->pdata->trig_mode, DECON_TRIG_DISABLE);
-
+#ifdef CONFIG_DECON_EVENT_LOG
 	DISP_SS_EVENT_LOG(DISP_EVT_TRIG_MASK, &decon->sd, ktime_set(0, 0));
+#endif
 	decon->trig_mask_timestamp =  ktime_get();
 
 	for (i = 0; i < decon->pdata->max_win; i++) {
@@ -3163,11 +3173,12 @@ static int decon_ioctl(struct fb_info *info, unsigned int cmd,
 			break;
 		}
 
+#ifdef CONFIG_DECON_EVENT_LOG
 		if ((decon->disp_ss_log_unmask & EVT_TYPE_WININFO))
 			DISP_SS_EVENT_LOG_WIN_CONFIG(&decon->sd, &decon->ioctl_data.win_data);
 		else
 			DISP_SS_EVENT_LOG(DISP_EVT_WIN_CONFIG, &decon->sd, ktime_set(0, 0));
-
+#endif
 		ret = decon_set_win_config(decon, &win_data);
 		if (ret)
 			break;

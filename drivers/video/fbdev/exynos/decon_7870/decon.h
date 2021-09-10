@@ -548,6 +548,7 @@ struct dsim_log_cmd_buf {
 	u32 id;
 	u8 buf;
 };
+#endif
 
 /* Related with size mismatch error */
 struct disp_ss_size_info {
@@ -557,6 +558,7 @@ struct disp_ss_size_info {
 	u32 h_out;
 };
 
+#ifdef CONFIG_DECON_EVENT_LOG
 /**
  * struct disp_ss_log - Display Subsystem Log
  * This struct includes DECON/DSIM

@@ -161,6 +161,7 @@ void disp_ss_event_log_win_config(char *ts, struct seq_file *s,
 	disp_log_win_config(ts, s, win_cfg->config);
 }
 
+#ifdef CONFIG_DECON_EVENT_LOG
 static inline void disp_ss_event_log_decon
 	(disp_ss_event_t type, struct v4l2_subdev *sd, ktime_t time)
 {
@@ -666,5 +667,6 @@ void DISP_SS_DUMP(u32 type)
 		break;
 	}
 }
+#endif
 #endif
 #endif
