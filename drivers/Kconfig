@@ -214,10 +214,6 @@ source "drivers/gps/Kconfig"
 
 source "drivers/sensorhub/Kconfig"
 
-source "drivers/five/Kconfig"
-
-source "drivers/security/samsung/icdrv/Kconfig"
-
 source "drivers/cpuquiet/Kconfig"
 
 endmenu
