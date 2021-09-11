@@ -172,7 +172,6 @@ source security/tomoyo/Kconfig
 source security/apparmor/Kconfig
 source security/yama/Kconfig
 source security/mstdrv/Kconfig
-source security/samsung/five/Kconfig
 
 choice
 	prompt "Default security module"

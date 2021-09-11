@@ -24,9 +24,5 @@ obj-$(CONFIG_SECURITY_APPARMOR)		+= apparmor/
 obj-$(CONFIG_SECURITY_YAMA)		+= yama/
 obj-$(CONFIG_CGROUP_DEVICE)		+= device_cgroup.o
 
-# FIVE
-subdir-$(CONFIG_FIVE)			+= samsung/five
-obj-$(CONFIG_FIVE)			+= samsung/five/
-
 # MST driver
 obj-$(CONFIG_MST_LDO)	  += mstdrv/
