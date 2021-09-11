@@ -55,7 +55,6 @@ static int gpu_tmu_hot_check_and_work(struct kbase_device *kbdev,
 	switch (event) {
 	case GPU_THROTTLING:
 		lock_clock = platform->tmu_lock_clk[index];
-		exynos_ss_thermal(NULL, 0, cooling_device_name, lock_clock);
 		GPU_LOG(DVFS_INFO, DUMMY, 0u, 0u, "THROTTLING[%lu]\n", index);
 		break;
 	case GPU_TRIPPING:

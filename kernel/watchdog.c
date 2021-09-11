@@ -301,7 +301,6 @@ static void watchdog_check_hardlockup_other_cpu(void)
 			return;
 
 		if (hardlockup_panic) {
-			exynos_ss_set_hardlockup(hardlockup_panic);
 			panic("Watchdog detected hard LOCKUP on cpu %u", next_cpu);
 		} else {
 			WARN(1, "Watchdog detected hard LOCKUP on cpu %u", next_cpu);
@@ -364,7 +363,6 @@ static void watchdog_overflow_callback(struct perf_event *event,
 			return;
 
 		if (hardlockup_panic) {
-			exynos_ss_set_hardlockup(hardlockup_panic);
 			panic("Watchdog detected hard LOCKUP on cpu %d",
 			      this_cpu);
 		} else {
@@ -396,9 +394,6 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
 	struct pt_regs *regs = get_irq_regs();
 	int duration;
 	int softlockup_all_cpu_backtrace = sysctl_softlockup_all_cpu_backtrace;
-
-	/* try to enable log_kevent of exynos-snapshot if log_kevent was off because of rcu stall */
-	exynos_ss_try_enable("log_kevent", NSEC_PER_SEC * 180);
 
 	/* kick the hardlockup detector */
 	watchdog_interrupt_count();

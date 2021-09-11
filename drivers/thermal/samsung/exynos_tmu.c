@@ -33,7 +33,6 @@
 #include <linux/of_irq.h>
 #include <linux/platform_device.h>
 #include <linux/regulator/consumer.h>
-#include <linux/exynos-ss.h>
 #include <linux/pm_qos.h>
 
 #include <soc/samsung/exynos-pm.h>
@@ -666,7 +665,6 @@ static int exynos_tmu_read(struct exynos_tmu_data *data)
 	if (!(pdata->d_type == ISP))
 		max_temp = exynos_tmu_max_temp_read(data);
 #endif
-	exynos_ss_thermal(pdata, temp, "READ" , 0);
 	mutex_unlock(&data->lock);
 
 	return temp;

@@ -243,9 +243,6 @@ static void shmem_forced_cp_crash(struct mem_link_device *mld,
 		return;
 	}
 
-	/* Disable debug Snapshot */
-	mif_set_snapshot(false);
-
 	mld->crash_reason.owner = crash_reason_owner;
 	strncpy(mld->crash_reason.string, crash_reason_string,
 		MEM_CRASH_REASON_SIZE);
@@ -476,9 +473,6 @@ static void cmd_crash_exit_handler(struct mem_link_device *mld)
 	struct link_device *ld = &mld->link_dev;
 	struct modem_ctl *mc = ld->mc;
 	unsigned long flags;
-
-	/* Disable debug Snapshot */
-	mif_set_snapshot(false);
 
 	spin_lock_irqsave(&mld->state_lock, flags);
 	mld->state = LINK_STATE_CP_CRASH;

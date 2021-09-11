@@ -29,7 +29,6 @@
 #include <linux/sched.h>
 #include <linux/highmem.h>
 #include <linux/perf_event.h>
-#include <linux/exynos-ss.h>
 
 #include <asm/cpufeature.h>
 #include <asm/exception.h>
@@ -45,9 +44,6 @@
 
 static int safe_fault_in_progress = 0;
 static const char *fault_name(unsigned int esr);
-#ifdef CONFIG_EXYNOS_SNAPSHOT
-extern void exynos_ss_panic_handler_safe(struct pt_regs *regs);
-#endif
 
 /*
  * Dump out the page tables associated with 'addr' in mm 'mm'.
@@ -94,10 +90,6 @@ static int __do_kernel_fault_safe(struct mm_struct *mm, unsigned long addr,
 {
 	safe_fault_in_progress = 0xFAFADEAD;
 
-#ifdef CONFIG_EXYNOS_SNAPSHOT
-	exynos_ss_panic_handler_safe(regs);
-	exynos_ss_printkl(safe_fault_in_progress,safe_fault_in_progress);
-#endif
 	while(1)
 		wfi();
 
@@ -121,10 +113,6 @@ static void __do_kernel_fault(struct mm_struct *mm, unsigned long addr,
 	 */
 	if (!is_el1_instruction_abort(esr) && fixup_exception(regs))
 		return;
-	if (safe_fault_in_progress) {
-		exynos_ss_printkl(safe_fault_in_progress, safe_fault_in_progress);
-		return;
-	}
 
 	/*
 	 * No handler, we'll have to terminate things with extreme prejudice.

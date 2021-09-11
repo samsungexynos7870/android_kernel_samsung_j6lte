@@ -609,7 +609,7 @@ static int s3c2410wdt_panic_handler(struct notifier_block *nb,
 		return -ENODEV;
 
 	/* We assumed that num_online_cpus() > 1 status is abnormal */
-	if (exynos_ss_get_hardlockup() || num_online_cpus() > 1) {
+	if (num_online_cpus() > 1) {
 
 		pr_emerg("%s: watchdog reset is started on panic after 5secs\n", __func__);
 

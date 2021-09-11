@@ -30,7 +30,6 @@
 #include <linux/kobject.h>
 #include <linux/sysfs.h>
 #include <linux/cpumask.h>
-#include <linux/exynos-ss.h>
 #include <linux/platform_device.h>
 #include <linux/of.h>
 #include <linux/apm-exynos.h>
@@ -587,10 +586,8 @@ static int exynos_target(struct cpufreq_policy *policy,
 	pr_debug("%s[%d]: new_freq[%d], index[%d]\n",
 				__func__, cur, target_freq, index);
 
-	exynos_ss_freq(cur, freqs[cur]->old, target_freq, ESS_FLAG_IN);
 	/* frequency and volt scaling */
 	ret = exynos_cpufreq_scale(target_freq, policy->cpu);
-	exynos_ss_freq(cur, freqs[cur]->old, target_freq, ESS_FLAG_OUT);
 
 #ifdef CONFIG_CPU_IDLE
 	/* enable cluster power down  */

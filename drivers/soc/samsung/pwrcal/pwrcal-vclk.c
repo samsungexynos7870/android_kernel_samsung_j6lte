@@ -3,7 +3,6 @@
 #include "pwrcal-pmu.h"
 #include "pwrcal-clk.h"
 #include "pwrcal-rae.h"
-#include <linux/exynos-ss.h>
 
 
 #define is_vclk(id)	((id & 0x0F000000) == 0x0A000000)
@@ -998,18 +997,13 @@ int vclk_setrate(struct vclk *vclk, unsigned long rate)
 		goto out;
 	}
 
-	exynos_ss_clk(vclk, name, ESS_FLAG_IN);
-
 	if (vclk->ops->set_rate)
 		ret = vclk->ops->set_rate(vclk, rate);
 	else
 		ret = -1;
 
-	if (!ret) {
+	if (!ret)
 		vclk->vfreq = rate;
-		exynos_ss_clk(vclk, name, ESS_FLAG_OUT);
-	} else
-		exynos_ss_clk(vclk, name, ESS_FLAG_ON);
 out:
 	return ret;
 }
@@ -1020,19 +1014,14 @@ unsigned long vclk_getrate(struct vclk *vclk)
 	const char *name = "vclk_getrate";
 #endif
 
-	exynos_ss_clk(vclk, name, ESS_FLAG_IN);
-	if (!vclk->ref_count) {
-		exynos_ss_clk(vclk, name, ESS_FLAG_ON);
+	if (!vclk->ref_count)
 		goto out;
-	}
+
 
 	ret = vclk->ops->get_rate(vclk);
 
-	if (ret > 0) {
+	if (ret > 0)
 		vclk->vfreq = (unsigned long)ret;
-		exynos_ss_clk(vclk, name, ESS_FLAG_OUT);
-	} else
-		exynos_ss_clk(vclk, name, ESS_FLAG_ON);
 out:
 	return ret;
 }
@@ -1050,7 +1039,6 @@ int vclk_enable(struct vclk *vclk)
 	if (vclk->parent != VCLK_NONE)
 		ret = vclk_enable(vclk->parent);
 
-	exynos_ss_clk(vclk, name, ESS_FLAG_IN);
 	if (ret)
 		goto out;
 
@@ -1068,11 +1056,6 @@ int vclk_enable(struct vclk *vclk)
 				vclk->name, vclk->vfreq);
 
 out:
-	if (!ret) {
-		exynos_ss_clk(vclk, name, ESS_FLAG_OUT);
-	} else
-		exynos_ss_clk(vclk, name, ESS_FLAG_ON);
-
 	return ret;
 }
 int vclk_disable(struct vclk *vclk)
@@ -1092,14 +1075,7 @@ int vclk_disable(struct vclk *vclk)
 	if (vclk->ref_count)
 		goto out;
 
-	exynos_ss_clk(vclk, name, ESS_FLAG_IN);
 	ret = vclk->ops->disable(vclk);
-
-	if (ret) {
-		exynos_ss_clk(vclk, name, ESS_FLAG_ON);
-		goto out;
-	} else
-		exynos_ss_clk(vclk, name, ESS_FLAG_OUT);
 
 	if (parent_disable && vclk->parent != VCLK_NONE)
 		ret = vclk_disable(vclk->parent);

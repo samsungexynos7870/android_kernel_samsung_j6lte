@@ -23,7 +23,6 @@
 #include <linux/suspend.h>
 #include <linux/smpboot.h>
 #include <linux/delay.h>
-#include <linux/exynos-ss.h>
 
 #include <asm/core_regs.h>
 #include "coresight-priv.h"
@@ -360,15 +359,6 @@ static int etm_info_init(void)
 	g_trace_info->config = 0;
 	g_trace_info->sync_period = 0x8;
 	g_trace_info->victlr = 0x0;
-#ifdef CONFIG_EXYNOS_CORESIGHT_ETR
-	g_trace_info->etr.buf_addr = exynos_ss_get_item_paddr("log_etm");
-	if (!g_trace_info->etr.buf_addr)
-		return -ENOMEM;
-	g_trace_info->etr.buf_size = exynos_ss_get_item_size("log_etm") / 4;
-	if (!g_trace_info->etr.buf_size)
-		return -ENOMEM;
-	g_trace_info->etr.buf_pointer = 0;
-#endif
 	return 0;
 }
 

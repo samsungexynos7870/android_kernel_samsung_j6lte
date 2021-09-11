@@ -35,7 +35,6 @@
 #include <linux/reboot.h>
 #include <linux/fb.h>
 #include <linux/mfd/samsung/core.h>
-#include <linux/exynos-ss.h>
 #include <linux/apm-exynos.h>
 #include <linux/mailbox-exynos.h>
 #include <asm-generic/checksum.h>
@@ -177,9 +176,6 @@ static irqreturn_t samsung_ipc_handler(int irq, void *p)
 	rx.vol[rx.cnt][1] = apo_voltage;
 	rx.vol[rx.cnt][2] = g3d_voltage;
 	rx.vol[rx.cnt][3] = mif_voltage;
-	exynos_ss_mailbox(rx.buf[rx.cnt], 1, protocol_name, rx.vol[rx.cnt]);
-#else
-	exynos_ss_mailbox(rx.buf[rx.cnt], 1, protocol_name, default_vol);
 #endif
 
 	rx.cnt++;
@@ -242,9 +238,6 @@ static int samsung_mbox_send_data(struct mbox_chan *chan, void *msg)
 	tx.vol[rx.cnt][1] = apo_in_voltage;
 	tx.vol[rx.cnt][2] = g3d_in_voltage;
 	tx.vol[rx.cnt][3] = mif_in_voltage;
-	exynos_ss_mailbox(msg_data, 0, protocol_name, tx.vol[rx.cnt]);
-#else
-	exynos_ss_mailbox(msg_data, 0, protocol_name, default_vol);
 #endif
 
 	tx.cnt++;
@@ -308,9 +301,6 @@ int samsung_mbox_last_tx_done(struct mbox_chan *chan)
 	rx.vol[rx.cnt][1] = apo_voltage;
 	rx.vol[rx.cnt][2] = g3d_voltage;
 	rx.vol[rx.cnt][3] = mif_voltage;
-	exynos_ss_mailbox(rx.buf[rx.cnt], 1, protocol_name, rx.vol[rx.cnt]);
-#else
-	exynos_ss_mailbox(rx.buf[rx.cnt], 1, protocol_name, default_vol);
 #endif
 
 	rx.cnt++;

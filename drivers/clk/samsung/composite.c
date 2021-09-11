@@ -13,7 +13,6 @@
 #include <linux/clk-private.h>
 #include <linux/log2.h>
 #include <linux/of.h>
-#include <linux/exynos-ss.h>
 #include <linux/delay.h>
 #include "composite.h"
 #include "../../soc/samsung/pwrcal/pwrcal.h"

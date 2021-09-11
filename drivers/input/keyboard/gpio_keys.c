@@ -30,7 +30,6 @@
 #include <linux/of_platform.h>
 #include <linux/of_gpio.h>
 #include <linux/spinlock.h>
-#include <linux/exynos-ss.h>
 
 #include <linux/sec_sysfs.h>
 #include <linux/sec_debug.h>
@@ -616,8 +615,6 @@ static void gpio_keys_gpio_work_func(struct work_struct *work)
 	struct gpio_button_data *bdata =
 		container_of(work, struct gpio_button_data, work);
 	int state = (gpio_get_value_cansleep(bdata->button->gpio) ? 1 : 0) ^ bdata->button->active_low;
-
-	exynos_ss_check_crash_key(bdata->button->code, state);
 
 	gpio_keys_gpio_report_event(bdata);
 

@@ -6,7 +6,6 @@
 #include "pwrcal-vclk.h"
 #include "pwrcal-rae.h"
 #include "pwrcal-asv.h"
-#include <linux/exynos-ss.h>
 
 #define MARGIN_UNIT 6250
 
@@ -305,8 +304,6 @@ int cal_dfs_set_rate(unsigned int id, unsigned long rate)
 		goto out;
 	}
 
-	exynos_ss_clk(vclk, name, ESS_FLAG_IN);
-
 	if (dfs->table->private_trans)
 		ret = dfs->table->private_trans(vclk->vfreq, rate, dfs->table);
 	else if (vclk->ops->set_rate)
@@ -314,11 +311,8 @@ int cal_dfs_set_rate(unsigned int id, unsigned long rate)
 	else
 		ret = -1;
 
-	if (!ret) {
+	if (!ret)
 		vclk->vfreq = rate;
-		exynos_ss_clk(vclk, name, ESS_FLAG_OUT);
-	} else
-		exynos_ss_clk(vclk, name, ESS_FLAG_ON);
 out:
 	spin_unlock_irqrestore(dfs->lock, flag);
 	return ret;
@@ -376,17 +370,13 @@ unsigned long cal_dfs_cached_get_rate(unsigned int id)
 
 	spin_lock_irqsave(dfs->lock, flag);
 
-	exynos_ss_clk(vclk, name, ESS_FLAG_IN);
-
 	if (!vclk->ref_count) {
 		pr_err("%s : %s reference count is zero \n", __func__, vclk->name);
-		exynos_ss_clk(vclk, name, ESS_FLAG_ON);
 		goto out;
 	}
 
 	ret = vclk->vfreq;
 
-	exynos_ss_clk(vclk, name, ESS_FLAG_OUT);
 out:
 	spin_unlock_irqrestore(dfs->lock, flag);
 	return ret;
@@ -410,11 +400,8 @@ unsigned long cal_dfs_get_rate(unsigned int id)
 
 	spin_lock_irqsave(dfs->lock, flag);
 
-	exynos_ss_clk(vclk, name, ESS_FLAG_IN);
-
 	if (!vclk->ref_count) {
 		pr_err("%s : %s reference count is zero \n", __func__, vclk->name);
-		exynos_ss_clk(vclk, name, ESS_FLAG_ON);
 		goto out;
 	}
 
@@ -423,11 +410,8 @@ unsigned long cal_dfs_get_rate(unsigned int id)
 	else
 		ret = vclk->ops->get_rate(vclk);
 
-	if (ret > 0) {
+	if (ret > 0)
 		vclk->vfreq = (unsigned long)ret;
-		exynos_ss_clk(vclk, name, ESS_FLAG_OUT);
-	} else
-		exynos_ss_clk(vclk, name, ESS_FLAG_ON);
 out:
 	spin_unlock_irqrestore(dfs->lock, flag);
 	return ret;

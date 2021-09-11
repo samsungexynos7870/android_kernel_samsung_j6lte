@@ -924,8 +924,6 @@ int decon_enable(struct decon_device *decon)
 #endif
 
 	decon_dbg("enable decon-%s\n", "int");
-	exynos_ss_printk("%s:state %d: active %d:+\n", __func__,
-				decon->state, pm_runtime_active(decon->dev));
 
 	if (decon->state != DECON_STATE_LPD_EXIT_REQ)
 		mutex_lock(&decon->output_lock);
@@ -1083,8 +1081,6 @@ int decon_enable(struct decon_device *decon)
 #endif
 
 err:
-	exynos_ss_printk("%s:state %d: active %d:-\n", __func__,
-				decon->state, pm_runtime_active(decon->dev));
 	if (state != DECON_STATE_LPD_EXIT_REQ)
 		mutex_unlock(&decon->output_lock);
 	return ret;
@@ -1105,8 +1101,6 @@ int decon_disable(struct decon_device *decon)
 		is_lcd_off = 1;
 #endif
 
-	exynos_ss_printk("disable decon-%s, state(%d) cnt %d\n", "int",
-				decon->state, pm_runtime_active(decon->dev));
 
 	/* Clear TUI state: Case of LCD off without TUI exit */
 	if (decon->out_type == DECON_OUT_TUI)
@@ -1207,8 +1201,6 @@ int decon_disable(struct decon_device *decon)
 	exynos_update_ip_idle_status(decon->idle_ip_index, 1);
 
 err:
-	exynos_ss_printk("%s:state %d: active%d:-\n", __func__,
-				decon->state, pm_runtime_active(decon->dev));
 	if (state != DECON_STATE_LPD_ENT_REQ)
 		mutex_unlock(&decon->output_lock);
 	return ret;
@@ -2871,8 +2863,6 @@ int decon_doze_enable(struct decon_device *decon)
 	struct dsim_device *dsim = container_of(decon->output_sd, struct dsim_device, sd);
 
 	decon_info("%s: ++ %d, %d\n", __func__, decon->state, decon->doze_state);
-	exynos_ss_printk("%s:state %d: active %d:+\n", __func__,
-				decon->state, pm_runtime_active(decon->dev));
 
 	mutex_lock(&decon->output_lock);
 
@@ -2988,8 +2978,6 @@ int decon_doze_enable(struct decon_device *decon)
 	call_panel_ops(dsim, displayon, dsim);
 
 err:
-	exynos_ss_printk("%s:state %d: active %d:-\n", __func__,
-				decon->state, pm_runtime_active(decon->dev));
 
 	mutex_unlock(&decon->output_lock);
 	decon_info("%s: --\n", __func__);
@@ -3002,8 +2990,6 @@ int decon_doze_suspend(struct decon_device *decon)
 	int ret = 0;
 
 	decon_info("%s: -- %d, %d\n", __func__, decon->state, decon->doze_state);
-	exynos_ss_printk("disable decon-%s, state(%d) cnt %d\n", "int",
-				decon->state, pm_runtime_active(decon->dev));
 
 	if (decon->state != DECON_STATE_LPD_ENT_REQ)
 		mutex_lock(&decon->output_lock);
@@ -3081,8 +3067,6 @@ int decon_doze_suspend(struct decon_device *decon)
 	exynos_update_ip_idle_status(decon->idle_ip_index, 1);
 
 err:
-	exynos_ss_printk("%s:state %d: active%d:-\n", __func__,
-				decon->state, pm_runtime_active(decon->dev));
 
 	mutex_unlock(&decon->output_lock);
 	decon_info("%s: --\n", __func__);

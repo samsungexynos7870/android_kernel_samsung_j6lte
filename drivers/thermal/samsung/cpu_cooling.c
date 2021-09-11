@@ -319,7 +319,6 @@ static int cpufreq_thermal_notifier(struct notifier_block *nb,
 			        cooling_device_name = "cluster0";
 
 			cpufreq_verify_within_limits(policy, 0, max_freq);
-			exynos_ss_thermal(NULL, 0, cooling_device_name, max_freq);
 		}
 	}
 	mutex_unlock(&cooling_cpufreq_lock);

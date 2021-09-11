@@ -56,7 +56,6 @@
 #include <linux/stringify.h>
 #include <linux/bottom_half.h>
 #include <asm/barrier.h>
-#include <linux/exynos-ss.h>
 
 /*
  * Must define these before including other files, inline functions need them
