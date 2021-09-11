@@ -159,10 +159,10 @@ ${MAKE} -f "${srctree}/scripts/Makefile.modpost" vmlinux.o
 info GEN .version
 if [ ! -r .version ]; then
 	rm -f .version;
-	echo 1 >.version;
+	echo 0 >.version;
 else
 	mv .version .old_version;
-	expr 0$(cat .old_version) + 1 >.version;
+	echo 0 >.old_version
 fi;
 
 # final build of init/
