@@ -33,8 +33,6 @@ config DYNAMIC_FSYNC
 
 if BLOCK
 
-source "fs/ext2/Kconfig"
-source "fs/ext3/Kconfig"
 source "fs/ext4/Kconfig"
 source "fs/sdcardfs/Kconfig"
 
