@@ -71,13 +71,13 @@ if [[ $clean = 'y' ]]; then
 	make distclean
 fi
 
-PATH="/home/fra/proton-clang/bin:/home/fra/gcc/bin:${PATH}" \
-make CC=clang AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip j6lte-perf_defconfig
+PATH="/home/fra/proton-clang/bin:${PATH}" \
+make HOSTCC=clang CC=clang AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip j6lte-perf_defconfig
 make exynos7870-j6lte_cis_ser_00.dtb
 make exynos7870-j6lte_cis_ser_02.dtb
 ./tools/dtbtool arch/arm64/boot/dts/ -o arch/arm64/boot/dtb
-PATH="/home/fra/proton-clang/bin:/home/fra/gcc/bin:${PATH}" \
-make CC=clang AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip -j69
+PATH="/home/fra/proton-clang/bin:${PATH}" \
+make HOSTCC=clang CC=clang AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip -j69
 rm -rf arch/arm64/boot/dts/*.dtb
 
 if [[ ! -d "AnyKernel3" ]]; then
